@@ -54,7 +54,7 @@
                         <a class="page-scroll" href="#coding">Coding</a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#services">Baking</a>
+                        <a class="page-scroll" href="#baking">Baking</a>
                     </li>
                     <li>
                         <a class="page-scroll" href="#contact">Contact</a>
@@ -86,6 +86,7 @@
                     <h1>Coding Projects</h1>
                 </div>
             </div>
+            <img src="img/water_spring_crop.gif" class="img-circle" width="200" height="200">
         </div>
     </section>
 
@@ -97,6 +98,22 @@
                     <h1>Baking</h1>
                 </div>
             </div>
+            <canvas id="drawCanvas" width="400" height="200" style="border:1px solid #000000;">
+            </canvas>
+            <script>
+                var c = document.getElementById("drawCanvas");
+                var ctx = c.getContext("2d");
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.lineTo(200,100);
+                ctx.lineTo(200,0);
+                ctx.lineTo(0,0);
+                var grad = ctx.createLinearGradient(0,0,0,100);
+                grad.addColorStop(0,"rgba(255,0,150,255)");
+                grad.addColorStop(1,"blue");
+                ctx.fillStyle = grad;
+                ctx.fill();
+            </script>
         </div>
     </section>
 
