@@ -1,0 +1,4 @@
+
+class WaterSpringModel(){
+    constructor()
+}
