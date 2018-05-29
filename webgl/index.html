@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Node JS</title>
+    <meta charset="utf-8">
+    <script src="js/math.js" type="text/javascript"></script>
+    <script src="js/water-model.js"></script>
+  </head>
+
+  <body>
+      <canvas id="glcanvas"></canvas>
+  </body>
+
+  <script>
+    water = new WaterSpringModel(2, 10, 0.1, 0.5);
+    water.splash([0,0], 10);
+    for(let i=0; i < 1000; i++){
+      water.update(.01);
+      if (i % 10 == 0){
+        document.write(water.heightMatrix, '<br>');
+      }
+     
+    }
+  </script>
+
+
+</html>

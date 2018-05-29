@@ -1,5 +1,14 @@
 var mouseX = 0;
 var mouseY = 0;
+var radius = 4;
+var theta = Math.PI/6.0;
+var phi = Math.PI/6.0;
+var pause = true;
+var totalTime = 0.0;
+var clamped = false;
+var x = 0;
+var y = 0;
+var z = 0;
 
 main();
 
@@ -11,12 +20,10 @@ function main() {
   const canvas = document.getElementById('glcanvas');
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false});
   var renderer = new renderEngine(gl);
-
+  canvas.setAttribute("tabindex", 0);
   canvas.addEventListener('mousemove', setMouse);
-  // const square = new Square();
-  // If we don't have a GL context, give up now
-  // var quad = new Quad(gl);
-  // var water = new Water2D(gl);
+  canvas.addEventListener('keydown', keyboardCallbackFunction);
+  canvas.addEventListener('focusout', function(){pause = true;});
 
 
   if (!gl) {
@@ -26,16 +33,25 @@ function main() {
   // Vertex shader program
 
   const vsSource = `#version 300 es
-    layout(location = 0) in vec4 aVertexPosition;
-    uniform mat4 uModelViewMatrix;
+    layout(location = 0) in vec3 aVertexPosition;
+
+    uniform mat4 uModelMatrix;
+    uniform mat4 uViewMatrix;
     uniform mat4 uProjectionMatrix;
     uniform vec4 uColor;
+    uniform vec3 uCameraPos;
 
     out mediump vec4 vColor;
+    out mediump vec3 vNormal;
+    out mediump vec3 vFragPos;
+    out mediump vec3 vCameraPos;
 
     void main(void) {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vNormal = normalize(vec3(1.0, 1.0, 0.0));
+      gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
       vColor = uColor;
+      vFragPos = vec3(uModelMatrix * vec4(aVertexPosition, 1.0));
+      vCameraPos = uCameraPos;
     }
   `;
 
@@ -45,10 +61,37 @@ function main() {
     precision mediump float;
 
     in vec4 vColor;
+    in vec3 vFragPos;
+    in vec3 vNormal;
+    in vec3 vCameraPos;
 
     out vec4 outColor;
     void main(void) {
-      outColor = vColor;
+      vec3 lightColor = vec3(1.0, 1.0, 1.0);
+      vec3 lightPosition = vec3(0.0, 20.0, 20.0);
+
+      vec3 lightDir = normalize(lightPosition - vFragPos);
+
+      float specularStrength = 0.5f;
+      float gamma = 1.0f;
+      vec3 viewDir = normalize(vCameraPos - vFragPos);
+      vec3 reflectDir = reflect(-lightDir, vNormal);
+
+      float spec = pow(max(float(dot(viewDir, reflectDir)), 0.0f), gamma);
+      vec3 specular = specularStrength * spec * lightColor;
+
+      float diff = max(dot(vNormal, lightDir), 0.0);
+      vec3 diffuse = diff * lightColor;
+
+      float ambientStrength = 0.5;
+      vec3 ambient = ambientStrength * lightColor;
+
+      vec3 fx = vec3(0.0f);
+      fx += ambient;
+      fx += diffuse;
+      fx += specular;
+      outColor = vec4(ambient + diffuse + specular, 1.0) * vColor;
+      // outColor = vec4(specular, 1.0);
     }
   `;
 
@@ -67,74 +110,69 @@ function main() {
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-      modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+      viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
+      modelMatrix: gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
       colorVector: gl.getUniformLocation(shaderProgram, 'uColor'),
+      cameraPositionVector: gl.getUniformLocation(shaderProgram, 'uCameraPosition'),
     },
   };
 
-  var mesh = new PlanarMesh(gl, 100);
+  var n = 10;
+  var mesh = new PlanarMesh(gl, n);
+  var waterModel = new WaterSpringModel(n);
+  waterModel.clamped = clamped;
   var then = 0;
   var deltaTime = 0;
 
-  const cc = [112/255, 128/255, 144/255, 1.0];
-  // Draw the scene repeatedly
+
   function render(now) {
-    // resize and clear canvas
-    resize(gl.canvas);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(cc[0], cc[1], cc[2], cc[3]);  
-    gl.clearDepth(1.0);                 // Clear everything
-    // gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-    // gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    // Clear the canvas before we start drawing on it.
-
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
     now *= 0.001;  // convert to seconds
     deltaTime = now - then;
     then = now;
-    setProjectionMatrix(gl, programInfo);
+    waterModel.clamped = clamped;
 
-    var n = mesh.n;
-    //console.log(n);
-    var heights = new Array(n);
-    // for (i=0; i<n*n; i++){
-    //   heights [i] = 0;
-    //   // heights[i] = 0.15 * Math.cos((i/(n-1))*(2 * Math.PI) + now*2.0);
-    //   heights[i] += 0.1 * Math.cos(i % (n-1) + now * 2.0);
-    //   heights[i] += .01 * Math.sin(i / (n*n-1) + now);
-    // }
 
-    for(i=0; i<n*n; i++){
-      heights[i] = 0;
-    }
-    for (i=0; i<n; i++){
-      for (j=0; j<n; j++){
-        heights[i*n + j] += 0.025 * Math.cos((i/(n-1) * (4*Math.PI)) + now*4.0);
-        heights[j*n + i] += 0.1 * Math.sin((i/(n-1) * (.5*Math.PI)) + now*1.0);
+    if (!pause){
+      setProjectionMatrix(gl, programInfo);
+      setViewMatrix(gl, programInfo);
+
+      totalTime += deltaTime;
+      if (totalTime > 3.0){
+        totalTime -= 3.0;
+        // random splash
+        if (clamped){
+          var i = Math.floor(Math.random()*(n-2)+1);
+          var j = Math.floor(Math.random()*(n-2)+1);
+        } else{
+          var i = Math.floor(Math.random()*(n-1));
+          var j = Math.floor(Math.random()*(n-1));
+        }
+        let speed = Math.random()*2.0-1.0;
+        console.log('Spash!!', i, j, speed);
+        waterModel.splash([i,j], speed);
       }
+        waterModel.update(deltaTime);
+        mesh.update(gl, math.flatten(waterModel.heightMatrix));
     }
-
     // renderer.drawWater(programInfo, heights, -20, 0, 100, 30);
     // mesh.draw(gl, programInfo, Math.cos(now)*10.0, Math.sin(now)*10.0);
-    mesh.update(gl, heights);
-    mesh.draw(gl, programInfo, 0, 0);
 
-    // for (x = -100; x < 100; x += 20){
-    //   for(y = -100; y < 100; y += 20){
-    //     // renderer.drawQuad(programInfo, x + mouseX, y + mouseY,
-    //     //       10.0, 10.0, x + now, c=[Math.abs(x/100), Math.abs(y/100), 0, 1.0]);
-    //     // renderer.drawShape('water', programInfo, x + mouseX, y + mouseY,
-    //     //       10.0, 10.0, x + now, c=[Math.abs(x/100), Math.abs(y/100), 0, 1.0]);
-    //     renderer.drawWater(programInfo, [0,1,2], 0, 0, 10, 10);
-    //   }
-    // }
-    // renderer.drawQuad(programInfo);
-    // quad.draw(gl, programInfo, mouseX, mouseY, 20.0, 20.0, now, [1.0, 0.0, 0.0, 1.0]);
+    // Draw the scene repeatedly
+    // gl.enable(gl.BLEND);
+    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.DEPTH_TEST);
+    if (pause){
+      gl.clearColor(0,0,0,1);  
+    }
+    else{
+      gl.clearColor(.5,.5,.5,1);
+    }
+    resize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    // gl.clearDepth(1.0);                 // Clear everything
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    mesh.draw(gl, programInfo);
+
     requestAnimationFrame(render);
   }
 
@@ -143,8 +181,37 @@ function main() {
 
 function setMouse(event){
   var canvas = document.getElementById('glcanvas');
-  
   mapToWorld(canvas, event.clientX, event.clientY);
+
+}
+
+function setViewMatrix(gl, shaderInfo){
+  var up = [0, 1.0, 0];
+
+  var viewMatrix = mat4.create();
+
+  // var eye = vec3.create();
+  var center = [0, 0, 0];
+
+  // vec3.set(eye, x, y, z);
+  var cameraPos = getCameraPosition();
+
+  mat4.lookAt(viewMatrix,
+              cameraPos,
+              center,
+              up);
+
+  gl.useProgram(shaderInfo.program);
+  gl.uniformMatrix4fv(
+      shaderInfo.uniformLocations.viewMatrix,
+      false,
+      viewMatrix
+      );
+
+  gl.uniform3fv(
+      shaderInfo.uniformLocations.cameraPositionVector,
+      cameraPos
+    );
 
 }
 
@@ -164,6 +231,7 @@ function setProjectionMatrix(gl, shaderInfo){
         projectionMatrix);
 
 }
+
 function mapToWorld(canvas, x,y,xmin=-100,xmax=100){
   // scale to one
   width = canvas.width;
@@ -181,4 +249,56 @@ function mapToWorld(canvas, x,y,xmin=-100,xmax=100){
 
   mouseX = xPos;
   mouseY = yPos;
+}
+
+function keyboardCallbackFunction(event){
+  if(event.keyCode == 37){ // left arrow
+    // phi -= Math.PI / 10.0;
+    x -= 0.1
+  }
+  if(event.keyCode == 38){ // up arrow
+    // theta += Math.PI / 10.0;
+    y += 0.1
+  }
+  if(event.keyCode == 39){ // right arrow
+    // phi += Math.PI / 10.0;
+    x += 0.1
+  }
+  if(event.keyCode == 40){ // down arrow
+    // theta -= Math.PI / 10.0;
+    y -= 0.1
+  }
+  if(event.keyCode == 90){
+    // radius += 1.0;
+    z += 0.1
+  }
+  if(event.keyCode == 67){
+    // radius -= 1.0;
+    z -= 0.1
+  }
+
+  if (theta > Math.PI){
+    theta = Math.PI;
+  }
+  if (theta < 0){
+    theta = 0;
+  }
+
+  if(event.keyCode == 32){
+    clamped = !clamped;
+    console.log('clamped ', clamped);
+  }
+  if(event.keyCode == 80){
+    pause = !pause;
+    console.log('paused = ', pause);
+  }
+} 
+
+function getCameraPosition(){
+  // var x = radius * Math.sin(theta) * Math.cos(phi);
+  // var y = radius * Math.sin(theta) * Math.sin(phi);
+  // var z = radius * Math.cos(theta);
+
+  // console.log(x, y, z);
+  return [x, y, z];
 }

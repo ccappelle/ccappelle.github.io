@@ -157,6 +157,8 @@ function PlanarMesh(gl, n=20){
 
   gl.enableVertexAttribArray(0);
 
+
+
   this.draw = DrawMesh;
   this.update = UpdateMesh;
 }
@@ -167,15 +169,14 @@ function UpdateMesh(gl, yMatrix){
   gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
   var updatedVerts = this.verts;
 
-  for(i=0; i<yMatrix.length; i++){
-    const newY = yMatrix[i];
-    const matIndex = (i * 3) +1;
-    updatedVerts[matIndex] = newY;
-  }
+  yMatrix.forEach(function (value, index, matrix){
+    let matIndex = (index * 3) + 1;
+    updatedVerts[matIndex] = value;
+  });
 
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(updatedVerts));
 }
-function DrawMesh(gl, shaderInfo, x, y){
+function DrawMesh(gl, shaderInfo){
   // create perspective matrix
   var projectionMatrix = mat4.create();
 
@@ -186,35 +187,17 @@ function DrawMesh(gl, shaderInfo, x, y){
               200
             );
 
-  var modelViewMatrix = mat4.create();
-  // Now move the drawing position a bit to where we want to
-  // start drawing the square.
-  mat4.translate(modelViewMatrix,     // destination matrix
-             modelViewMatrix,     // matrix to translate
-             [x, y, -80.0]);  // amount to translate
-
-  mat4.rotate(modelViewMatrix,  // destination matrix
-          modelViewMatrix,  // matrix to rotate
-          Math.PI/5.0,   // amount to rotate in radians
-          [1, 0, 0]);       // axis to rotate around
-
-  // mat4.rotate(modelViewMatrix,
-  //         modelViewMatrix,
-  //         Math.PI/4.0,
-  //         [0, 1, 0])
-  mat4.scale(modelViewMatrix,
-          modelViewMatrix,
-          [20.0, 20.0, 20.0]);
-
+  var modelMatrix = mat4.create();
+  // mat4.rotate(modelMatrix, modelMatrix, Math.PI/4.0, [1, 0, 0])
   gl.bindVertexArray(this.vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
   gl.useProgram(shaderInfo.program);
 
   gl.uniformMatrix4fv(
-      shaderInfo.uniformLocations.modelViewMatrix,
+      shaderInfo.uniformLocations.modelMatrix,
       false,
-      modelViewMatrix
+      modelMatrix
     );
 
   gl.uniformMatrix4fv(

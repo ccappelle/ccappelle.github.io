@@ -16,21 +16,21 @@ class renderEngine{
             var shape = this.water;
         }
 
-        var modelViewMatrix = mat4.create();
+        var modelMatrix = mat4.create();
 
 
         // Now move the drawing position a bit to where we want to
         // start drawing the square.
-        mat4.translate(modelViewMatrix,     // destination matrix
-                   modelViewMatrix,     // matrix to translate
+        mat4.translate(modelMatrix,     // destination matrix
+                   modelMatrix,     // matrix to translate
                    [x, y, -0.5]);  // amount to translate
 
-        mat4.rotate(modelViewMatrix,  // destination matrix
-                modelViewMatrix,  // matrix to rotate
+        mat4.rotate(modelMatrix,  // destination matrix
+                modelMatrix,  // matrix to rotate
                 theta,   // amount to rotate in radians
                 [0, 0, 1]);       // axis to rotate around
-        mat4.scale(modelViewMatrix,
-                modelViewMatrix,
+        mat4.scale(modelMatrix,
+                modelMatrix,
                 [w, h, 1.0]);
 
         this.gl.bindVertexArray(shape.vao);
@@ -38,9 +38,9 @@ class renderEngine{
         this.gl.useProgram(shaderInfo.program);
 
         this.gl.uniformMatrix4fv(
-          shaderInfo.uniformLocations.modelViewMatrix,
+          shaderInfo.uniformLocations.modelMatrix,
           false,
-          modelViewMatrix);
+          modelMatrix);
 
         this.gl.uniform4fv(
             shaderInfo.uniformLocations.colorVector, c);
