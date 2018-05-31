@@ -50,7 +50,7 @@
                     <li class="hidden">
                         <a class="page-scroll" href="#page-top"></a>
                     </li>
-                <!--
+                
                     <li>
                         <a class="page-scroll" href="#coding">Coding</a>
                     </li>
@@ -60,7 +60,7 @@
                     <li>
                         <a class="page-scroll" href="#contact">Contact</a>
                     </li>
-                -->
+                
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -70,92 +70,160 @@
 
     <!-- Intro Section -->
     <section id="intro" class="intro-section">
-        <div class="container">
+        <div class="container" style="max-width: 600px;">
             <div class="row">
                 <div class="col-lg-12">
                     <h1>Welcome</h1>
                     <p align="justify">
                     I am a PhD student at the University of Vermont studying Evolutionary Robotics.
-                    I work with my adviser, Dr. Josh Bongard, in the MEC-Lab exploring the different forms of modularity in embodied agents and the impacts of the agents body and brain structure on evolvability.
-                    Outside of evolutionary computation and automated design my interests include computer graphics, physics engines, baking bread and biking.
+                    I work with my adviser, Dr. Josh Bongard, in the Morphology, Evolution & Cognition Laboratory (MEC-Lab) exploring the different forms of modularity in embodied agents and the impacts of the agents body and brain structure on evolvability.
+                    Outside of evolutionary computation and automated design my interests include computer graphics, physics engines, baking bread, and biking.
                     I use python for everything I can and C++ when necessary.
                     </p>
-
-
-        <div class="text-center">
-            <img src="img/icon.png" class="img-fluid">
-        </div>
-        <br> <br>
-                <table class="table">
-                <tr>
-                    <th>email:</th>
-                    <td>collin.cappelle@gmail.com</td>
-                </tr>
-                <tr>
-                    <th>github:</th>
-                    <td><a href="https://github.com/ccappelle" target="_blank">https://github.com/ccappelle</a> </td>
-                </tr>
-                <tr>
-                    <th>location:</th>
-                    <td>214 Farrell Hall Burlington VT</td>
-                </tr>
                 </div>
             </div>
-        </div>
+        </div>                
 
-
-
+        <img src="img/icon.png" width="16" height="16"><br><br><br>
+        <img src="img/tree.png" width="300">
     </section>
 
-
-<!--
     <section id="coding" class="coding-section">
-        <div class="container">
+        <div class="container" style="max-width: 100%;">
             <div class="row">
                 <div class="col-lg-12">
                     <h1>Coding Projects</h1>
                 </div>
             </div>
-            <img src="img/water_spring_crop.gif" class="img-circle" width="200" height="200">
+
+            <div class="row">
+                <div class="col-md-4 form-group">
+                    <div style="margin: 20px; padding: 20px;">
+                        <img src="img/mecl-cropped.png" style="background-color:gray;" height="200" width="200"/ class="img-circle">
+                        
+                        <h3><a href="https://ccappelle.github.io/pyrosim" style="color: white;"> pyrosim</a></h3>
+                        <p align="justify">
+                            Pyrosim is a python interface designed to aid in the rapid creation and prototyping of simulated robots.
+                            I am a co-developer on this project along with Josh Bongard and Anton Bernatskiy.
+                            The goal of pyrosim is to provide an easy entry to simulating robots and evolutionary robotics for users who are unfamiliar with physics engines, C++, or coding in general.
+                            It has successfully been used by over 100 students who have taken Dr. Bongard's evolutionary robotics course at UVM and members of the MEC-Lab.
+                        </p> 
+                    </div> 
+                </div>
+
+                <div class="col-md-4 form-group">
+                    <div style="margin: 20px; padding: 20px;">
+                        <img src="img/postal-cropped.gif" class="img-circle" width="200" height="200">
+
+                        <h3><a href="https://www.youtube.com/watch?v=qj3ZuhExowI&feature=youtu.be" style="color: white;"> untitled platformer</a></h3>
+
+                        <p align="justify">
+                            My, as of yet to be titled, platformer puts the player in control of a sentient cardboard box imbued with special abilities.
+                            You must bounce, slide, and climb your way to the exit choosing the right combination of rotation and selected ability.
+                            This project is my way of exploring the world of computer graphics and custom physics engines.
+                            It is written entirely in C++ with the help of only a few simple libraries (OpenGL, GLFW, Glad, GLM).
+                            Special thanks to <a href="https://learnopengl.com/" style="color: white; font: bold;">Learn OpenGL</a> for providing a comprehensive foundation for understanding OpenGL and computer graphics in general.
+                        </p>    
+                    </div>
+                </div>
+
+                <div class="col-md-4 form-group">
+                    <div style="margin: 20px; padding: 20px;">
+                        <img src="img/water_spring_crop.gif" class="img-circle" width="200" height="200">
+
+                        <h3> modeling assortment </h3>
+                        <p align="justify">
+                        I enjoy creating small models and prototypes to play around with.
+                        Ranging from spring models to approximate water waves to gravitational models using octrees my interests in modeling span a variety of topics all with the same goal: make something fun.
+                        (Link to projects coming soon).
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
+
+  <!-- Indicators -->
+<!--   <ol class="carousel-indicators">
+    <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+    <li data-target="#myCarousel" data-slide-to="1"></li>
+    <li data-target="#myCarousel" data-slide-to="2"></li>
+  </ol>
+ -->
+  <!-- Wrapper for slides -->
+
 
     <section id="baking" class="baking-section">
-        <div class="container">
+        <div class="container" style="max-width: 600px;">
             <div class="row">
-                <div class="col-lg-12">
-                    <h1>Baking</h1>
+                <div class="col-sm-12" style="text-align: center">
+                        <h1>Baking</h1>
+                        <p align="justify">
+                        I am an avid cook in general but baking bread holds a special place in my heart.
+                        Here are some sample pictures of bread I made over the last couple of years.
+                        </p>
+
+                        <div id="myCarousel" class="carousel slide" data-ride="carousel" style="width: 100%; max-width: 600px; margin: auto;">
+                            <div class="carousel-inner">
+                                <div class="item active">
+                                    <img src="img/bread/2017-09-17.jpg" alt="Challah">
+                                </div>
+
+                                <div class="item">
+                                    <img src="img/bread/2017-09-29.jpg" alt="Bagels">
+                                </div>
+
+                                <div class="item">
+                                    <img src="img/bread/2017-11-06.jpg" alt="Croissants">
+                                </div>
+
+                                <div class="item">
+                                    <img src="img/bread/2018-01-15.jpg" alt="Foccacia">
+                                </div>                     
+                            </div>
+
+                          <!-- Left and right controls -->
+                            <a class="left carousel-control" href="#myCarousel" data-slide="prev">
+                              <span class="glyphicon glyphicon-chevron-left"></span>
+                              <span class="sr-only">Previous</span>
+                            </a>
+                            <a class="right carousel-control" href="#myCarousel" data-slide="next">
+                              <span class="glyphicon glyphicon-chevron-right"></span>
+                              <span class="sr-only">Next</span>
+                            </a>
+                    </div>
                 </div>
             </div>
-            <canvas id="drawCanvas" width="400" height="200" style="border:1px solid #000000;">
-            </canvas>
-            <script>
-                var c = document.getElementById("drawCanvas");
-                var ctx = c.getContext("2d");
-                ctx.beginPath();
-                ctx.moveTo(0,0);
-                ctx.lineTo(200,100);
-                ctx.lineTo(200,0);
-                ctx.lineTo(0,0);
-                var grad = ctx.createLinearGradient(0,0,0,100);
-                grad.addColorStop(0,"rgba(255,0,150,255)");
-                grad.addColorStop(1,"blue");
-                ctx.fillStyle = grad;
-                ctx.fill();
-            </script>
         </div>
-    </section>
+        <br>
+        <br>
+        <br>
+    </section>  
 
     <section id="contact" class="contact-section">
-        <div class="container">
+        <div class="container" style="max-width: 600px;">
             <div class="row">
-                <div class="col-lg-12">
-                    <h1>Contact Section</h1>
+                <div class="col-sm-12">
+                    <h1>Contact</h1>
+
+                    <table class="table">
+                    <tr>
+                        <th>email:</th>
+                        <td>collin.cappelle@gmail.com</td>
+                    </tr>
+                    <tr>
+                        <th>github:</th>
+                        <td><a href="https://github.com/ccappelle" target="_blank" style="color: white;">https://github.com/ccappelle</a> </td>
+                    </tr>
+                    <tr>
+                        <th>location:</th>
+                        <td>204 Farrell Hall Burlington VT</td>
+                    </tr>
+                    </table>
                 </div>
             </div>
         </div>
     </section>
--->
 
     <!-- jQuery -->
     <script src="js/jquery.js"></script>

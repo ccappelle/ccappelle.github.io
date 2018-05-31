@@ -32,30 +32,31 @@ The padding is very important to make sure the scrollspy picks up the right area
 of those sections to manage the look and feel of the site. */
 
 .intro-section {
-    height: 100%;
-    padding-top: 150px;
+    min-height: 75%;
+    padding-top: 75px;
     text-align: center;
     background: #fff;
 }
 
-.coding-section {
+.coding-section{
     min-height: 100%;
-    padding-top: 70px;
+    padding-top: 50px;
     text-align: center;
     background-color: #5E9DC8;
     color: #fff;
 }
 
-.baking-section {
-    height: 100%;
-    padding-top: 150px;
+.baking-section{
+    min-height: 50%;
+    padding-top: 50px;
     text-align: center;
     background: #fff;
 }
 
-.contact-section {
-    height: 100%;
-    padding-top: 150px;
+.contact-section{
+    min-height: 40%;
+    padding-top: 50px;
     text-align: center;
-    background: #eee;
+    background-color: #000;
+    color: #fff;
 }
