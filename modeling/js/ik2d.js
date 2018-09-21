@@ -189,15 +189,7 @@ ik2d.animate = function ( scene , dt, pause=false ){
     }
 }
 
-ik2d.updateInstructions = function ( divElement ){
-    // generate instructions
-    var p = document.createElement( "p" );
-    var text = document.createTextNode( "2D IK: move around the green target ball " +
-            "along the grid using WASD. You can adjust the speed at which the robot " +
-            "moves towards the target in the upper right hand corner. " );
-    p.appendChild( text );
-    divElement.appendChild( p );
-}
+ik2d.instructionString = "Use WASD to move the green target along the grid.";
 
 ik2d.keyDown = function ( event ){
     var keyCode = event.which;

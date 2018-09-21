@@ -1,17 +1,10 @@
 var empty = {};
 
-empty.updateInstructions = function ( divElement ){
-    // generate instructions
-    var p = document.createElement( "p" );
-    var text = document.createTextNode( "Welcome to the " +
+empty.instructionString = "Welcome to the " +
         "Modeling Suite." +
         "Please select an example in the lower "+
         "left hand corner and " +
-        "press resubmit to view");
-
-    p.appendChild( text );
-    divElement.appendChild( p );
-}
+        "press resubmit to view";
 
 empty.animate = function ( scene, dt, pause=false ){
 
@@ -27,7 +20,8 @@ empty.init = function ( scene ){
 
 var nameDictionary = {
     "ik2d": ik2d,
-    "empty": empty
+    "empty": empty,
+    "lsystem": lsystem
 };
 
 // HTML THINGIES -------------
@@ -124,7 +118,12 @@ function resubmit(){
 
     if ( dropdownValue in nameDictionary ){
         nameDictionary[dropdownValue].init( scene , camera );
-        nameDictionary[dropdownValue].updateInstructions( instructionDiv );
+        // update text in instruction box
+        var p = document.createElement( "p" );
+        var text = document.createTextNode( nameDictionary[dropdownValue].instructionString );
+        p.appendChild( text );
+        instructionDiv.appendChild( p );
+        // nameDictionary[dropdownValue].updateInstructions( instructionDiv );
     }
 
     currentModel = dropdownValue;
