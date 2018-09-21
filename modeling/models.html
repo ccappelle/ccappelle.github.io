@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset=utf-8>
+        <title>Simple Models</title>
+        <style>
+            body {
+                margin: 0; 
+                overflow: hidden;
+            }
+            canvas { width: 100%; height: 100%; }
+            button {
+                position: absolute;
+                bottom: 10px;
+                text-align: center;
+                z-index: 100;
+                left: 175px;
+                display:block;
+            }
+
+            select {
+                position: absolute;
+                text-align: center;
+                z-index: 100;
+                bottom: 10px;
+                left: 10px;
+                display: block;
+            }
+        </style>
+    </head>
+    <body >
+        <div style="position: absolute; left: 70%;
+                    right: 1%; bottom: 10px;
+                    padding: 10px;
+                    background-color: rgba(200, 200, 200, 0.5);"
+                    id="instructions">
+        </div>
+
+        <select id="modelDropdown" type="text">
+            <option value="empty">Empty</option>
+            <option value="ik2d">2D Inverse Kinematics</option>
+            <option value="lsystem">L-System Viewer</option>
+        </select>
+        <button id="resubmit">Resubmit</button>
+
+        <script type="text/javascript" src="js/dat.gui.min.js"></script>
+        <script src="js/three.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/ik2d.js"></script>
+        <script src="js/main.js"></script>
+    </body>
