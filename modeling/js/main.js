@@ -11,7 +11,7 @@ empty.animate = function ( scene, dt, pause=false ){
 }
 
 empty.clean = function ( scene ){
-
+    
 }
 
 empty.init = function ( scene ){
@@ -85,6 +85,32 @@ function render(){
     renderer.render(scene, camera);
 }
 
+function addPlane(){
+    // Create textured plane
+    var texture = new THREE.TextureLoader().load("textures/groundimg.png");
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set( 20, 20 );
+
+    var planeGeometry = new THREE.PlaneBufferGeometry( 20, 20, 32, 32 );
+    var planeMaterial = new THREE.MeshBasicMaterial( { map: texture, side: THREE.DoubleSide } )
+
+    var plane = new THREE.Mesh( planeGeometry, planeMaterial );
+    plane.rotation.x = Math.PI / 2;
+    plane.position.y = -5.01;
+    scene.add( plane );
+}
+
+function addLights() {
+        // add lights
+    ambientLight = new THREE.AmbientLight( 0x505050, 1);
+    pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
+    pointLight.position.set( 10, 10, 3 );
+    scene.add( ambientLight );
+    scene.add( pointLight );
+
+}
+
 function resubmit(){
 
     var dropdownValue = dropdown.value;
@@ -99,7 +125,8 @@ function resubmit(){
     }
     // clean instruction div
     document.getElementById( "instructions" ).innerHTML = "";
-
+    document.getElementById( "special" ).innerHTML = "";
+    
     if ( dropdownValue in nameDictionary ){
         nameDictionary[dropdownValue].init( scene , camera );
         // update text in instruction box
@@ -128,6 +155,7 @@ function onDocumentKeyDown( event ){
 }
 
 addPlane();
+addLights();
 resubmit();
 animate();
 
