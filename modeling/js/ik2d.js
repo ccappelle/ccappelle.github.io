@@ -174,13 +174,17 @@ ik2d.clean = function ( scene ) {
     ik2d.gui.destroy();
 }
 
-ik2d.animate = function ( scene , dt, pause=false ){
+ik2d.animate = function ( scene , dt, camera, pause=false ){
     // move ball to updated target
     ik2d.ball.position.set( ik2d.targetX, ik2d.targetY, 0 );
     // update robot to move to target
     if ( !pause ){
         ik2d.robot.updateArm( ik2d.targetX, ik2d.targetY, dt );
     }
+}
+
+ik2d.render = function ( renderer, scene, camera ){
+    renderer.render( scene, camera );
 }
 
 ik2d.instructionString = "Use WASD to move the green target along the grid.";

@@ -1,3 +1,5 @@
+
+
 var lsystem = {};
 
 lsystem.rules = {};
@@ -23,38 +25,14 @@ lsystem.iterateString  = function ( inputString ){
 	return outputString;
 }
 
-lsystem.instructionString = "Coming Soon";
+lsystem.instructionString = "Complete 3D Coming Soon";
 
-lsystem.animate = function ( scene, dt, pause=false ){
+lsystem.animate = function ( scene, dt, camera, pause=false ){
 	
-	// var radius = 0.1;
-	// var length = 1.0;
-	// var n = 8;
+}
 
-	// // radius top, radius bottom, height, radial segs,
-	// // height segs, capped, 
-	// var geometry = new THREE.CylinderGeometry( radius, radius,
-	// 		length );
-	// var mesh = new THREE.MeshStandardMaterial( { color: 0xA0522D} );
-
-	// // console.log( "animating " );
-	// for ( var i = 0; i < lsystem.toDrawArray.length; i++ ){
-	// 	var data = lsystem.toDrawArray[ i ];
-	// 	var cylinder = new THREE.Mesh( geometry, mesh );
-
-	// 	// character, x, y, z, rx, ry, rz
-	// 	cylinder.position.x = data[ 1 ];
-	// 	cylinder.position.y = data[ 2 ];
-	// 	cylinder.position.z = data[ 3 ];
-
-	// 	cylinder.rotation.x = data[ 4 ];
-	// 	cylinder.rotation.y = data[ 5 ];
-	// 	cylinder.rotation.z = data[ 6 ];
-
-	// 	console.log( "drawing " + data );
-	// 	scene.add( cylinder );
-	// }
-
+lsystem.render = function ( renderer, scene, camera ){
+	renderer.render( scene, camera );
 }
 
 lsystem.clean = function ( scene ){
@@ -113,8 +91,13 @@ lsystem.init = function ( scene ){
 
 	// set starting sample value into rule
 	document.getElementById( "leftRuleEntry1" ).value = "F";
-	document.getElementById( "rightRuleEntry1" ). value = "F+F";
+	document.getElementById( "rightRuleEntry1" ). value = "F[+F][-F]";
 	lsystem.generate( null );
+
+	// grid helper
+	var gridHelper = new THREE.GridHelper( 10, 10 );
+    gridHelper.geometry.rotateX( Math.PI / 2 );
+    scene.add( gridHelper );
 }
 
 lsystem.focusOut = function () {
@@ -179,6 +162,8 @@ lsystem.removeRuleEntry = function ( event ) {
 lsystem.generate = function ( event ){
 	lsystem.rules = {}
 
+	// clear all meshes
+
 	var depth = document.getElementById( "depthInput" ).value;
 
 	var currentString = document.getElementById( "seedInput" ).value;
@@ -200,14 +185,18 @@ lsystem.generate = function ( event ){
 
 
 	lsystem.toDrawArray = [];
-	thetaStack = [];
-	phiStack = [];
+	var thetaStack = [];
+	var phiStack = [];
+	var positionStack = [];
 
-	lsystem.thetaIncr = Math.PI / 2.0;
+	lsystem.thetaIncr = Math.PI / 4.0;
 
 	// generate objects from currentString
 	// starting angle
-	var theta = Math.PI / 2.0
+	var theta = Math.PI / 2.0;
+	var phi = 0.0;
+	var psi = 0.0;
+
 	var position = new THREE.Vector3( 0, 0, 0 );
 
 
@@ -215,26 +204,41 @@ lsystem.generate = function ( event ){
 		character = currentString[ i ];
 		if ( character == '[' ){
 			// push current data to relevant stacks
+			thetaStack.push( theta );
+			var pushedPositionVector = new THREE.Vector3();
+			pushedPositionVector.copy( position );
+			positionStack.push( pushedPositionVector );
 		} else if ( character == ']' ){
 			// pop relevant data
+			theta = thetaStack.pop();
+			position = positionStack.pop();
 		} else if ( character == '+' ){
 			// increment theta by amount
 			theta += lsystem.thetaIncr;
 
 		} else if ( character == '-' ){
 			// decrement theta by amount
-			theta -= lsystem.thetaDecr;
+			theta -= lsystem.thetaIncr;
 
 		} else if ( character in lsystem.rules ){
-			
+			var baseDirection = new THREE.Vector3( 1, 0, 0 );
+
 			var direction = new THREE.Vector3( Math.cos( theta ), 
 											   Math.sin( theta ),
 											   0 );
+			var quaternion = new THREE.Quaternion();
 
+			// direction.cross( direction );
+			// quaternion.x = direction.x;
+			// quaternion.y = direction.y;
+			// quaternion.z = direction.z;
+			// quaternion.w = Math.sqrt( direction )
 			var mid = position.addScaledVector( direction, 0.5 );
+
+			
 			lsystem.toDrawArray.push( [ character, mid.x, mid.y, mid.z,
-										theta, 0.0, 0.0 ] );
-			position = position.add( direction );
+										 0.0, 0.0, theta - Math.PI / 2.0 ] );
+			position.addScaledVector( direction, 0.5 );
 		}
 
 	}
@@ -247,14 +251,13 @@ lsystem.generate = function ( event ){
 	// height segs, capped, 
 	var geometry = new THREE.CylinderGeometry( radius, radius,
 			length );
-	var mesh = new THREE.MeshStandardMaterial( { color: 0xA0522D} );
+	var mesh = new THREE.MeshStandardMaterial( { color: 0x832A0D} );
 
-	for ( var i = 0; i < lsystem.meshes; i++ ){
+	for ( var i = 0; i < lsystem.meshes.length; i++ ){
 		scene.remove( lsystem.meshes[ i ] );
 	}
 
-	console.log( lsystem.toDrawArray[ i] );
-	console.log( currentString );
+	// console.log( lsystem.toDrawArray[] );
 	
 	for ( var i = 0; i < lsystem.toDrawArray.length; i++ ){
 		var data = lsystem.toDrawArray[ i ];
@@ -269,7 +272,6 @@ lsystem.generate = function ( event ){
 		cylinder.rotation.y = data[ 5 ];
 		cylinder.rotation.z = data[ 6 ];
 
-		console.log( "drawing " + data );
 		scene.add( cylinder );
 		lsystem.meshes.push( cylinder );
 	}

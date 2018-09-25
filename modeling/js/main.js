@@ -14,6 +14,10 @@ empty.clean = function ( scene ){
     
 }
 
+empty.render = function ( renderer, scene, camera ){
+    renderer.render( scene, camera );
+}
+
 empty.init = function ( scene ){
 
 }
@@ -21,7 +25,8 @@ empty.init = function ( scene ){
 var nameDictionary = {
     "ik2d": ik2d,
     "empty": empty,
-    "lsystem": lsystem
+    "lsystem": lsystem,
+    "gol": gol
 };
 
 // HTML THINGIES -------------
@@ -55,10 +60,6 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 // Append Renderer to DOM
 document.body.appendChild( renderer.domElement );
 
-// Create a Cube Mesh with basic material
-// var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-// var material = new THREE.MeshBasicMaterial( { color: "#433F81" } );
-// var cube = new THREE.Mesh( geometry, material );
 controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 // window resize listener
@@ -73,7 +74,9 @@ function animate(){
   var dt = clock.getDelta();
 
   if ( currentModel in nameDictionary ){
-    nameDictionary[currentModel].animate( scene, dt );
+    nameDictionary[currentModel].animate( scene, dt);
+  } else {
+    console.log( currentModel + ' not in dictionary' );
   }
 
   controls.update();
@@ -81,8 +84,13 @@ function animate(){
   render();
 };
 
-function render(){
-    renderer.render(scene, camera);
+function render( ){
+    if ( currentModel in nameDictionary ){
+        nameDictionary[currentModel].render( renderer, scene, camera );
+    } else {
+        console.log( currentModel + ' not in dictionary' );
+    }
+    // renderer.render(scene, camera);
 }
 
 function addPlane(){
@@ -103,7 +111,7 @@ function addPlane(){
 
 function addLights() {
         // add lights
-    ambientLight = new THREE.AmbientLight( 0x505050, 1);
+    ambientLight = new THREE.AmbientLight( 0xffffff, 1);
     pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
     pointLight.position.set( 10, 10, 3 );
     scene.add( ambientLight );
@@ -149,10 +157,35 @@ function onWindowResize() {
 }
 
 function onDocumentKeyDown( event ){
-    if ( currentModel in nameDictionary ){
-        nameDictionary[currentModel].keyDown( event );
+    if ( dropdown.value in nameDictionary ){
+        if ( typeof nameDictionary[currentModel].keyDown === 'function' ){
+            nameDictionary[currentModel].keyDown( event );
+        }
+    }
+
+}
+
+function onMouseMove( event ){
+
+    if ( dropdown.value in nameDictionary ){
+        if ( typeof nameDictionary[currentModel].setMouse === 'function' ){
+            var x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            var y = 1 - ( event.clientY / window.innerHeight ) * 2;
+            nameDictionary[currentModel].setMouse( x, y );
+        } 
     }
 }
+
+function onMouseClick( event ){
+    if ( dropdown.value in nameDictionary ){
+        if ( typeof nameDictionary[currentModel].mouseClick === 'function' ){
+            nameDictionary[currentModel].mouseClick( event );
+        } 
+    }
+}
+
+window.addEventListener( 'mousemove', onMouseMove, false );
+window.addEventListener( 'click', onMouseClick, false );
 
 addPlane();
 addLights();
