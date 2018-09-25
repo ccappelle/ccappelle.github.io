@@ -255,6 +255,7 @@ lsystem.generate = function ( event ){
 
 	console.log( lsystem.toDrawArray[ i] );
 	console.log( currentString );
+	
 	for ( var i = 0; i < lsystem.toDrawArray.length; i++ ){
 		var data = lsystem.toDrawArray[ i ];
 		var cylinder = new THREE.Mesh( geometry, mesh );
