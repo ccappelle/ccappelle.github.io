@@ -135,12 +135,6 @@ ik2d.init = function ( scene , camera ) {
     // camera.position.set( 3, 0, 10 );
     // camera.lookAt( 0, 0, 0 );
 
-    // add lights
-    ik2d.ambientLight = new THREE.AmbientLight( 0x505050, 1);
-    ik2d.pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
-    ik2d.pointLight.position.set( 10, 10, 3 );
-    scene.add( ik2d.ambientLight );
-    scene.add( ik2d.pointLight );
 
     // add robot
     ik2d.robot.addToScene( scene );
@@ -151,7 +145,7 @@ ik2d.init = function ( scene , camera ) {
     scene.add( ik2d.gridHelper );
 
     // add ball
-    var ballGeometry = new THREE.SphereGeometry( 0.3, 10, 10 );
+    var ballGeometry = new THREE.SphereGeometry( 0.3, 5, 5 );
     var ballMaterial = new THREE.MeshStandardMaterial( { color: "#0f770f" } )
     ballMaterial.wireframe = true;
     ik2d.ball = new THREE.Mesh( ballGeometry, ballMaterial );
@@ -170,8 +164,8 @@ ik2d.init = function ( scene , camera ) {
 }
 
 ik2d.clean = function ( scene ) {
-    scene.remove( ik2d.ambientLight );
-    scene.remove( ik2d.pointLight );
+    // scene.remove( ik2d.ambientLight );
+    // scene.remove( ik2d.pointLight );
     scene.remove( ik2d.gridHelper );
 
     ik2d.robot.removeFromScene( scene );

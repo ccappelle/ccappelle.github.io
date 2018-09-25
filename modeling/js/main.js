@@ -11,7 +11,7 @@ empty.animate = function ( scene, dt, pause=false ){
 }
 
 empty.clean = function ( scene ){
-
+    
 }
 
 empty.init = function ( scene ){
@@ -101,6 +101,15 @@ function addPlane(){
     scene.add( plane );
 }
 
+function addLights() {
+        // add lights
+    ambientLight = new THREE.AmbientLight( 0x505050, 1);
+    pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
+    pointLight.position.set( 10, 10, 3 );
+    scene.add( ambientLight );
+    scene.add( pointLight );
+
+}
 function resubmit(){
 
     var dropdownValue = dropdown.value;
@@ -115,7 +124,8 @@ function resubmit(){
     }
     // clean instruction div
     document.getElementById( "instructions" ).innerHTML = "";
-
+    document.getElementById( "special" ).innerHTML = "";
+    
     if ( dropdownValue in nameDictionary ){
         nameDictionary[dropdownValue].init( scene , camera );
         // update text in instruction box
@@ -144,6 +154,7 @@ function onDocumentKeyDown( event ){
 }
 
 addPlane();
+addLights();
 resubmit();
 animate();
 
