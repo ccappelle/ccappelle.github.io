@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset=utf-8>
+        <title>Simple Models</title>
+        <style>
+            body {
+                margin: 0; 
+                overflow: hidden;
+            }
+            canvas { width: 100%; height: 100%; }
+            button {
+                position: absolute;
+                bottom: 10px;
+                text-align: center;
+                z-index: 100;
+                left: 175px;
+                display:block;
+            }
+
+            select {
+                position: absolute;
+                text-align: center;
+                z-index: 100;
+                bottom: 10px;
+                left: 10px;
+                display: block;
+            }
+        </style>
+    </head>
+    <body >
+        <script id="vertexShader" type="x-shader/x-vertex">
+            void main() {
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0);
+            }
+        </script>
+
+        <script id="fragmentShader" type="x-shader/x-fragment">
+            uniform float cellColor;
+            void main() {
+                gl_FragColor = vec4(0.0, 0.0, cellColor, 1.);
+            }
+        </script>
+
+        <script type="text/javascript" src="js/dat.gui.min.js"></script>
+        <script src="js/three.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/gol.js"></script>
+<!--         <script src="js/ik2d.js"></script>
+        <script src="js/lsystem.js"></script>
+        <script src="js/main.js"></script> -->
+    </body>

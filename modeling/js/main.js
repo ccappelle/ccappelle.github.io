@@ -85,22 +85,6 @@ function render(){
     renderer.render(scene, camera);
 }
 
-function addPlane(){
-    // Create textured plane
-    var texture = new THREE.TextureLoader().load("textures/groundimg.png");
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set( 20, 20 );
-
-    var planeGeometry = new THREE.PlaneBufferGeometry( 20, 20, 32, 32 );
-    var planeMaterial = new THREE.MeshBasicMaterial( { map: texture, side: THREE.DoubleSide } )
-
-    var plane = new THREE.Mesh( planeGeometry, planeMaterial );
-    plane.rotation.x = Math.PI / 2;
-    plane.position.y = -5.01;
-    scene.add( plane );
-}
-
 function resubmit(){
 
     var dropdownValue = dropdown.value;
