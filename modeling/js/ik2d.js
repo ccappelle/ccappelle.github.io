@@ -192,13 +192,13 @@ ik2d.instructionString = "Use WASD to move the green target along the grid.";
 ik2d.keyDown = function ( event ){
     var keyCode = event.which;
     var incr = 0.2
-    if ( keyCode == 188 ){ // up
+    if ( keyCode == 188 || keyCode == 87 ){ // up
         ik2d.targetY += incr;
     }
-    else if ( keyCode == 69 ){ // right
+    else if ( keyCode == 69 || keyCode == 68 ){ // right
         ik2d.targetX += incr;
     }
-    else if ( keyCode == 79 ){ // down
+    else if ( keyCode == 79 || keyCode == 83 ){ // down
         ik2d.targetY -= incr;
     }
     else if ( keyCode == 65 ){ // left
