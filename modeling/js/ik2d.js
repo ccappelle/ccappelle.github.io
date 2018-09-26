@@ -135,12 +135,6 @@ ik2d.init = function ( scene , camera ) {
     // camera.position.set( 3, 0, 10 );
     // camera.lookAt( 0, 0, 0 );
 
-    // add lights
-    ik2d.ambientLight = new THREE.AmbientLight( 0x505050, 1);
-    ik2d.pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
-    ik2d.pointLight.position.set( 10, 10, 3 );
-    scene.add( ik2d.ambientLight );
-    scene.add( ik2d.pointLight );
 
     // add robot
     ik2d.robot.addToScene( scene );
@@ -151,7 +145,7 @@ ik2d.init = function ( scene , camera ) {
     scene.add( ik2d.gridHelper );
 
     // add ball
-    var ballGeometry = new THREE.SphereGeometry( 0.3, 10, 10 );
+    var ballGeometry = new THREE.SphereGeometry( 0.3, 5, 5 );
     var ballMaterial = new THREE.MeshStandardMaterial( { color: "#0f770f" } )
     ballMaterial.wireframe = true;
     ik2d.ball = new THREE.Mesh( ballGeometry, ballMaterial );
@@ -170,8 +164,8 @@ ik2d.init = function ( scene , camera ) {
 }
 
 ik2d.clean = function ( scene ) {
-    scene.remove( ik2d.ambientLight );
-    scene.remove( ik2d.pointLight );
+    // scene.remove( ik2d.ambientLight );
+    // scene.remove( ik2d.pointLight );
     scene.remove( ik2d.gridHelper );
 
     ik2d.robot.removeFromScene( scene );
@@ -180,7 +174,7 @@ ik2d.clean = function ( scene ) {
     ik2d.gui.destroy();
 }
 
-ik2d.animate = function ( scene , dt, pause=false ){
+ik2d.animate = function ( scene , dt, camera, pause=false ){
     // move ball to updated target
     ik2d.ball.position.set( ik2d.targetX, ik2d.targetY, 0 );
     // update robot to move to target
@@ -189,26 +183,22 @@ ik2d.animate = function ( scene , dt, pause=false ){
     }
 }
 
-ik2d.updateInstructions = function ( divElement ){
-    // generate instructions
-    var p = document.createElement( "p" );
-    var text = document.createTextNode( "2D IK: move around the green target ball " +
-            "along the grid using WASD. You can adjust the speed at which the robot " +
-            "moves towards the target in the upper right hand corner. " );
-    p.appendChild( text );
-    divElement.appendChild( p );
+ik2d.render = function ( renderer, scene, camera ){
+    renderer.render( scene, camera );
 }
+
+ik2d.instructionString = "Use WASD to move the green target along the grid.";
 
 ik2d.keyDown = function ( event ){
     var keyCode = event.which;
     var incr = 0.2
-    if ( keyCode == 188 ){ // up
+    if ( keyCode == 188 || keyCode == 87 ){ // up
         ik2d.targetY += incr;
     }
-    else if ( keyCode == 69 ){ // right
+    else if ( keyCode == 69 || keyCode == 68 ){ // right
         ik2d.targetX += incr;
     }
-    else if ( keyCode == 79 ){ // down
+    else if ( keyCode == 79 || keyCode == 83 ){ // down
         ik2d.targetY -= incr;
     }
     else if ( keyCode == 65 ){ // left

@@ -30,6 +30,10 @@
         </style>
     </head>
     <body >
+        <div style="position: absolute; left: 5px; right: 20%; top: 5px;
+            background-color: rgba(0, 0, 0, 0);"
+            id = "special"></div>
+
         <div style="position: absolute; left: 70%;
                     right: 1%; bottom: 10px;
                     padding: 10px;
@@ -41,6 +45,7 @@
             <option value="empty">Empty</option>
             <option value="ik2d">2D Inverse Kinematics</option>
             <option value="lsystem">L-System Viewer</option>
+            <option value="gol">Game of Life</option>
         </select>
         <button id="resubmit">Resubmit</button>
 
@@ -48,5 +53,7 @@
         <script src="js/three.js"></script>
         <script src="js/OrbitControls.js"></script>
         <script src="js/ik2d.js"></script>
+        <script src="js/lsystem.js"></script>
+        <script src="js/gol.js"></script>
         <script src="js/main.js"></script>
     </body>
