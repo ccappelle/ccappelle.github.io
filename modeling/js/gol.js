@@ -1,4 +1,3 @@
-var pause = false;
 
 function createCellGeom ( scale, eps1, eps2, segs = 10 ){
     // creates beveled cube
@@ -25,10 +24,8 @@ function createCellGeom ( scale, eps1, eps2, segs = 10 ){
 class GameOfLife {
     constructor ( N = 20, updateInterval = 1.0 ){
         this.N = N; // N x N number of cells
-        this.scale = 10.0 / N; // fits 10 x 10 grid so adjust cell size accordingly
-        this.cells = new Array( N ).fill( 0.0 ).map( ( ) => new Array( N ).fill( 0.0 )); // binary values of cells
-        this.meshes = new Array( N ).fill( null ).map( ( ) => new Array( N ).fill( null )); // empty array to store mesh objects
-        this.cellObjects = []; // linear version of meshes for easier looping
+        this.numCells = N;
+        // this.scale = 10.0 / N; // fits 10 x 10 grid so adjust cell size accordingly
 
         this.raycaster = new THREE.Raycaster(); // raycaster
         this.hoveredCell = [ -1, -1 ]; // which cell is currently pointed to
@@ -42,27 +39,16 @@ class GameOfLife {
         this.mouse = new THREE.Vector2()
         this.mouse.x = 0;
         this.mouse.y = 0;
+
+        this.pause = true;
+        this.color1 = "#ffffff";
+        this.color2 = "#00000f";
     }
 
     init ( scene, camera ){
         // create meshes
 
-        var cellGeom = createCellGeom( this.scale, this.scale / 4.0, this.scale / 8.0);
-
-        for ( var i = 0; i < this.N; i++ ){
-            for ( var j = 0; j < this.N; j++ ){
-                var cellMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } );
-                // var boxMaterial = new THREE.MeshBasicMaterial( { color: "#FFFFFF" } );
-                this.meshes[i][j] = new THREE.Mesh( cellGeom, cellMaterial );
-
-                this.meshes[i][j].position.set( this.gridStart + i * this.scale + this.scale / 2.0,
-                                           this.gridStart + j * this.scale + this.scale / 2.0,
-                                           0);
-                scene.add( this.meshes[i][j] );
-                this.cellObjects.push( this.meshes[i][j] );
-            }
-        }
-        pause = true;
+        this.generateMeshes( scene, camera );
         // special div
         this.updateSpecialDiv();
 
@@ -70,9 +56,51 @@ class GameOfLife {
         height : 5 * 32 -1 } )
 
         this.gui.add( this, "interval" ).min( 0.01 ).max( 1.0 ).step( 0.01 );
+        this.gui.addColor( this, "color1" );
+        this.gui.addColor( this, "color2" );
+        this.gui.add( this, "numCells" ).min( 8 ).max( 60 ).step( 2 );
+    }
+
+    generateMeshes ( scene, camera ){
+        this.cells = new Array( this.N ).fill( 0.0 ).map( ( ) => new Array( this.N ).fill( 0.0 )); // binary values of cells
+        this.meshes = new Array( this.N ).fill( null ).map( ( ) => new Array( this.N ).fill( null )); // empty array to store mesh objects
+        this.cellObjects = []; // linear version of meshes for easier looping
+
+        var scale = 10.0 / this.N;
+        var cellGeom = createCellGeom( scale,
+                                       scale / 4.0,
+                                       scale / 8.0);
+
+        for ( var i = 0; i < this.N; i++ ){
+            for ( var j = 0; j < this.N; j++ ){
+                var cellMaterial = new THREE.MeshStandardMaterial( { color: this.color1 } );
+                // var boxMaterial = new THREE.MeshBasicMaterial( { color: "#FFFFFF" } );
+                this.meshes[i][j] = new THREE.Mesh( cellGeom, cellMaterial );
+
+                this.meshes[i][j].position.set( this.gridStart + i * scale + scale / 2.0,
+                                           this.gridStart + j * scale + scale / 2.0,
+                                           0);
+                scene.add( this.meshes[i][j] );
+                this.cellObjects.push( this.meshes[i][j] );
+            }
+        }
+
+        this.pause = true;
     }
 
     animate ( scene, dt, camera, p=false){
+        if ( !this.pause ){
+            document.getElementById( "runButton" ).innerText = "pause";
+        } else{
+            document.getElementById( "runButton" ).innerText = "run";
+        }
+
+        if ( this.N != this.numCells ){ // recreate grid
+            this.removeMeshes( scene );
+            this.N = this.numCells;
+            this.generateMeshes( scene, camera );
+
+        }
         // update countdown
         this.countDownTimer -= dt;
 
@@ -80,7 +108,7 @@ class GameOfLife {
             this.countDownTimer = -1.0;
         }
 
-        if ( this.countDownTimer < 0 && pause == false){ // if countdown is ready and running
+        if ( this.countDownTimer < 0 && this.pause == false){ // if countdown is ready and running
             this.updateCells();
             this.countDownTimer = this.interval; // reset countdown
         }
@@ -101,11 +129,11 @@ class GameOfLife {
         for ( var i = 0; i < this.N; i++ ){
             for ( var j = 0; j < this.N; j++ ){
                 if ( this.cells[i][j] == 0.0 ){
-                    this.meshes[i][j].material.color.set( 0xffffff );
+                    this.meshes[i][j].material.color.set( this.color1 );
                     this.meshes[i][j].scale.set( 1, 1, 1 );
                 }
                 else {
-                    this.meshes[i][j].material.color.set( 0x202020 );
+                    this.meshes[i][j].material.color.set( this.color2 );
                     this.meshes[i][j].scale.set( 1, 1, 1.5 );
                 }
                 
@@ -129,13 +157,16 @@ class GameOfLife {
     }
 
     clean ( scene ){
-        for ( var i = 0; i < this.cellObjects.length; i++ ){
-            scene.remove( this.cellObjects[ i ] );
-        }
-
+        this.removeMeshes( scene );
         this.gui.destroy();
     }
     
+    removeMeshes ( scene ){
+        for ( var i = 0; i < this.cellObjects.length; i++ ){
+            scene.remove( this.cellObjects[ i ] );
+        }
+    }
+
     setMouse( x, y ){
         this.mouse.x = x;
         this.mouse.y = y;
@@ -201,17 +232,55 @@ class GameOfLife {
         var runButton = document.createElement( "button" );
         runButton.setAttribute( "id", "runButton" );
         runButton.innerText = "run";
-        runButton.setAttribute( "style", "position: absolute; left: 20px; top: 20px")
-        runButton.addEventListener( "click", this.togglePause );
+        runButton.setAttribute( "style", "position: absolute; left: 10px; top: 20px;" + 
+                                "height: 20px; width: 50px; text-align: center;");
+
+        runButton.addEventListener( "click", (e) => { this.togglePause( e ); });
         specialDiv.appendChild( runButton );
+
+        var clearButton = document.createElement( "button" );
+        clearButton.setAttribute( "id", "clearButton" );
+        clearButton.innerText = "clear";
+        clearButton.setAttribute( "style", "position: absolute; left: 80px; top: 20px; " + 
+                        "height: 20px; width: 50px; text-align: center;");
+        clearButton.addEventListener( "click", (e) => { this.clear( e ); } );
+        specialDiv.appendChild( clearButton );
+
+        var patternMenu = document.createElement( "select" );
+        patternMenu.id = "pattenMenu";
+        specialDiv.appendChild( patternMenu )
+        var patterns = [ "", "glider", "glider gun" ];
+        for ( var i = 0; i < patterns.length; i++ ){
+            var option = document.createElement( "option" );
+            option.value = patterns[ i ];
+            option.text = patterns[ i ];
+            patternMenu.appendChild( option );
+        }
     }
 
     togglePause( event ){
-        pause = !pause;
-        if ( !pause ){
-            document.getElementById( "runButton" ).innerText = "pause";
-        } else{
-            document.getElementById( "runButton" ).innerText = "run";
+        this.pause = !this.pause;
+    }
+
+    clear( event ){
+        this.cells = new Array( this.N ).fill( 0.0 ).map( ( ) => new Array( this.N ).fill( 0.0 )); // binary values of cells
+        if ( !this.pause ){
+            this.togglePause( null );
+        }
+    }
+
+    addPattern ( name ) {
+        centeri = Math.floor( this.N / 2 );
+        centerj = Math.floor( this.N / 2 );
+        if ( name == "glider" ){
+            // 0 1 0
+            // 0 0 1
+            // 1 1 1
+            this.cells[ centeri ][ centerj - 1 ] = 1;
+            this.cells[ centeri + 1 ][ centerj ] = 1;
+            this.cells[ centeri - 1 ][ centerj + 1 ] = 1;
+            this.cells[ centeri ][ centerj + 1 ] = 1;
+            this.cells[ centeri + 1 ][ centerj + 1 ] = 1;
         }
     }
 }
