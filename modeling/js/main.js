@@ -18,8 +18,11 @@ empty.render = function ( renderer, scene, camera ){
     renderer.render( scene, camera );
 }
 
-empty.init = function ( scene ){
+empty.init = function ( s ){
+    var coilGeom = coilGeometry( 1 );
 
+    var coil = new THREE.Mesh( coilGeom, new THREE.MeshBasicMaterial( { color: 0xff0000 }) );
+    s.add( coil );
 }
 
 var nameDictionary = {
