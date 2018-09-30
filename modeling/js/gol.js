@@ -285,5 +285,3 @@ class GameOfLife {
     }
 }
 
-gol = new GameOfLife( );
-

@@ -182,7 +182,7 @@ function prismGeom( n=100, indexed=true ){
     return geom
 }
 
-function toroidGeom( n=5, m=100, radius1=0.5, radius2=0.25){
+function toroidGeom( n=50, m=50, radius1=0.5, radius2=0.25){
 
     var circlesPerToroid = 5;
     var pointsPerCircle = 100;

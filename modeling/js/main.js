@@ -1,3 +1,5 @@
+var gol = new GameOfLife();
+var viewer = new Viewer();
 var empty = {};
 
 empty.instructionString = "Welcome to the " +
@@ -19,22 +21,23 @@ empty.render = function ( renderer, scene, camera ){
 }
 
 empty.init = function ( scene ){
-    var geom = toroidGeom( 50, 50 );
+    // var geom = toroidGeom( 50, 50 );
 
-    // var material = new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide } );
-    var material = new THREE.MeshStandardMaterial( { color: 0xff0000, wireframe: true } );
-    var mesh = new THREE.Mesh( geom, material );
+    // // var material = new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide } );
+    // var material = new THREE.MeshStandardMaterial( { color: 0xff0000, wireframe: true } );
+    // var mesh = new THREE.Mesh( geom, material );
 
-    scene.add( mesh );
+    // scene.add( mesh );
 
-    mesh.scale.set( 5, 5, 5 );
+    // mesh.scale.set( 5, 5, 5 );
 }
 
 var nameDictionary = {
     "ik2d": ik2d,
     "empty": empty,
     "lsystem": lsystem,
-    "gol": gol
+    "gol": gol,
+    "viewer": viewer
 };
 
 // HTML THINGIES -------------
