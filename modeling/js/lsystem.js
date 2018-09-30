@@ -40,6 +40,15 @@ lsystem.clean = function ( scene ){
 	lsystem.numRuleEntries = 0;
 
 	// remove drawn elements
+	for ( var i = 0; i < lsystem.meshes.length; i++ ){
+		scene.remove( lsystem.meshes[i] );
+	}
+
+	lsystem.meshes = [];
+	lsystem.toDrawArray = [];
+
+	// remove grid
+	scene.remove( lsystem.gridHelper );
 }
 
 lsystem.init = function ( scene ){
@@ -95,9 +104,9 @@ lsystem.init = function ( scene ){
 	lsystem.generate( null );
 
 	// grid helper
-	var gridHelper = new THREE.GridHelper( 10, 10 );
-    gridHelper.geometry.rotateX( Math.PI / 2 );
-    scene.add( gridHelper );
+	lsystem.gridHelper = new THREE.GridHelper( 10, 10 );
+    lsystem.gridHelper.geometry.rotateX( Math.PI / 2 );
+    scene.add( lsystem.gridHelper );
 }
 
 lsystem.focusOut = function () {

@@ -20,16 +20,9 @@ empty.render = function ( renderer, scene, camera ){
     renderer.render( scene, camera );
 }
 
+
 empty.init = function ( scene ){
-    // var geom = toroidGeom( 50, 50 );
 
-    // // var material = new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide } );
-    // var material = new THREE.MeshStandardMaterial( { color: 0xff0000, wireframe: true } );
-    // var mesh = new THREE.Mesh( geom, material );
-
-    // scene.add( mesh );
-
-    // mesh.scale.set( 5, 5, 5 );
 }
 
 var nameDictionary = {
