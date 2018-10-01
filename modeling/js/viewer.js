@@ -5,22 +5,39 @@ class Viewer {
                              "Cylinder",
                              "Toroid"];
         this.instructionString = "View custom made models"
-        this.cachedMeshes = [];
-        this.currentModel = [];
+        this.currentMeshes = [];
+        this.cachedMeshes = []
+        this.currentModel = "";
+        this.cachedModel = "";
 
+        this.gui;
+
+        this.scale = 1.0;
+        this.xRotation = 0.0;
+        this.yRotation = 0.0;
+        this.zRotation = 0.0;
     }
 
     init( scene, camera ){
-        this.currentModel = '';
-        this.cachedModel = ''; 
-
-        // create dropdown with model options
         this.updateSpecialDiv();
+
+        // create gui
+        this.gui = new dat.GUI();
+        this.gui.add( this, "scale", 0.1, 5.0 ).step( 0.1 );
+        this.gui.add( this, "xRotation", 0, 360 ).step( 1 );
+        this.gui.add( this, "yRotation", 0, 360 ).step( 1 );
+        this.gui.add( this, "zRotation", 0, 360 ).step( 1 );
     }
 
     clean ( scene ){
+        for ( var i = 0; i < this.currentMeshes.length; i++ ){
+            scene.remove( this.currentMeshes[i] );
+        }
 
+        this.currentModel = [];
+        this.currentMeshes = [];
     }
+
 
     animate ( scene, dt, camera ){
         if ( this.currentModel != this.cachedModel ){
@@ -35,6 +52,13 @@ class Viewer {
             // console.log( this.currentModel );
             // scene.add( this.mesh );
             // this.cachedModel = this.currentModel;
+        }
+
+        if ( this.currentMeshes.length > 0 ){
+            this.currentMeshes[0].rotation.x = this.xRotation * Math.PI / 180.0;
+            this.currentMeshes[0].rotation.y = this.yRotation * Math.PI / 180.0;
+            this.currentMeshes[0].rotation.z = this.zRotation * Math.PI / 180.0;
+            this.currentMeshes[0].scale.set( this.scale, this.scale, this.scale );
         }
     }
 

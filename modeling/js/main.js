@@ -1,3 +1,4 @@
+var lsystem = new Lsystem();
 var gol = new GameOfLife();
 var viewer = new Viewer();
 var empty = {};
@@ -115,7 +116,7 @@ function addPlane(){
 
 function addLights() {
         // add lights
-    ambientLight = new THREE.AmbientLight( 0xffffff, 1);
+    ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
     pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
     pointLight.position.set( 10, 10, 3 );
     scene.add( ambientLight );

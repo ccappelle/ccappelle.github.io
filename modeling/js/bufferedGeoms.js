@@ -237,7 +237,7 @@ function toroidGeom( n=50, m=50, radius1=0.5, radius2=0.25){
     vertices = new Float32Array( verticesArray );
     indices = new Uint16Array( indicesArray );
     normals = new Float32Array( normalArray );
-    // make a square
+    
     var geom = new THREE.BufferGeometry();
 
     geom.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
@@ -245,3 +245,4 @@ function toroidGeom( n=50, m=50, radius1=0.5, radius2=0.25){
     geom.setIndex( new THREE.BufferAttribute( indices, 1) );
     return geom;
 }
+
