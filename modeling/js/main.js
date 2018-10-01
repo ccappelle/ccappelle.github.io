@@ -1,3 +1,6 @@
+var lsystem = new Lsystem();
+var gol = new GameOfLife();
+var viewer = new Viewer();
 var empty = {};
 
 empty.instructionString = "Welcome to the " +
@@ -18,6 +21,7 @@ empty.render = function ( renderer, scene, camera ){
     renderer.render( scene, camera );
 }
 
+
 empty.init = function ( scene ){
 
 }
@@ -26,7 +30,8 @@ var nameDictionary = {
     "ik2d": ik2d,
     "empty": empty,
     "lsystem": lsystem,
-    "gol": gol
+    "gol": gol,
+    "viewer": viewer
 };
 
 // HTML THINGIES -------------
@@ -111,7 +116,7 @@ function addPlane(){
 
 function addLights() {
         // add lights
-    ambientLight = new THREE.AmbientLight( 0xffffff, 1);
+    ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
     pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
     pointLight.position.set( 10, 10, 3 );
     scene.add( ambientLight );
