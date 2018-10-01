@@ -16,6 +16,7 @@ class Viewer {
         this.xRotation = 0.0;
         this.yRotation = 0.0;
         this.zRotation = 0.0;
+        this.color = "#ff4040";
     }
 
     init( scene, camera ){
@@ -27,6 +28,7 @@ class Viewer {
         this.gui.add( this, "xRotation", 0, 360 ).step( 1 );
         this.gui.add( this, "yRotation", 0, 360 ).step( 1 );
         this.gui.add( this, "zRotation", 0, 360 ).step( 1 );
+        this.gui.addColor( this, "color" );
     }
 
     clean ( scene ){
@@ -59,6 +61,7 @@ class Viewer {
             this.currentMeshes[0].rotation.y = this.yRotation * Math.PI / 180.0;
             this.currentMeshes[0].rotation.z = this.zRotation * Math.PI / 180.0;
             this.currentMeshes[0].scale.set( this.scale, this.scale, this.scale );
+            this.currentMeshes[0].material.color.set( this.color );
         }
     }
 
@@ -102,11 +105,11 @@ class Viewer {
             // remove mesh
             // make circle add to scene
             var geom = prismGeom();
-            var mesh = new THREE.Mesh( geom, new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide } ) );
+            var mesh = new THREE.Mesh( geom, new THREE.MeshStandardMaterial( { color: this.color, side: THREE.DoubleSide } ) );
             this.currentMeshes.push( mesh );
         } else if ( this.currentModel == "Toroid" ) {
             var geom = toroidGeom();
-            var mesh = new THREE.Mesh( geom, new THREE.MeshStandardMaterial( { color: 0xff0000 } ) );
+            var mesh = new THREE.Mesh( geom, new THREE.MeshStandardMaterial( { color: this.color } ) );
             this.currentMeshes.push ( mesh );
         }
     }
