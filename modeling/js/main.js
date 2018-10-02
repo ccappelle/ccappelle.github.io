@@ -1,6 +1,7 @@
 var lsystem = new Lsystem();
 var gol = new GameOfLife();
 var viewer = new Viewer();
+var water2d = new Water2D();
 var empty = {};
 
 empty.instructionString = "Welcome to the " +
@@ -31,7 +32,8 @@ var nameDictionary = {
     "empty": empty,
     "lsystem": lsystem,
     "gol": gol,
-    "viewer": viewer
+    "viewer": viewer,
+    "water2d": water2d
 };
 
 // HTML THINGIES -------------
