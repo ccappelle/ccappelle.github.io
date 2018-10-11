@@ -11,27 +11,39 @@
                 overflow: hidden;
             }
             canvas { width: 100%; height: 100%; }
-            button {
-                position: absolute;
-                bottom: 10px;
-                text-align: center;
-                z-index: 100;
-                left: 175px;
-                display:block;
-            }
-
-            select {
-                position: absolute;
-                text-align: center;
-                z-index: 100;
-                bottom: 10px;
-                left: 10px;
-                display: block;
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                padding-top: 100px;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgb( 0, 0, 0 );
+                background-color: rgba( 0, 0, ,0 0.4);
             }
         </style>
     </head>
     <body >
-        <div style="position: absolute; left: 5px; right: 20%; top: 5px;
+        <script type="text/javascript" src="js/dat.gui.min.js"></script>
+        <script src="js/three.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/superModel.js"></script>
+        <script src="js/es.js"></script>
+        
+<!--         <script src="js/bufferedGeoms.js"></script>
+        <script src="js/ik2d.js"></script>
+        <script src="js/lsystem.js"></script>
+        <script src="js/gol.js"></script>
+        <script src="js/viewer.js"></script>
+        <script src="js/water2d.js"></script>
+ -->
+
+        <script src="js/newMain.js"></script>
+
+<!--         <div style="position: absolute; left: 5px; right: 20%; top: 5px;
             background-color: rgba(0, 0, 0, 0);"
             id = "special"></div>
 
@@ -63,5 +75,5 @@
         <script src="js/viewer.js"></script>
         <script src="js/water2d.js"></script>
 
-        <script src="js/main.js"></script>
+        <script src="js/main.js"></script> -->
     </body>
