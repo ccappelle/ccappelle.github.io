@@ -12,9 +12,7 @@ var modelDictionary = {
 }
 
 // create selector
-var modelSelector = document.createElement( "select" );
-modelSelector.setAttribute( "id", "ModelSelector" );
-document.body.appendChild( modelSelector );
+var modelSelector = document.getElementById( "model-selector" );
 modelSelector.addEventListener( "change", changeModel );
 
 for (const [key, value] of Object.entries( modelDictionary ) ) {
@@ -24,24 +22,10 @@ for (const [key, value] of Object.entries( modelDictionary ) ) {
     modelSelector.appendChild( modelOption );
 }
 
-// create instruction div
-var instructionDiv = document.createElement( "div" );
-instructionDiv.setAttribute( "id", "InstructionDiv" );
-instructionDiv.setAttribute( "style",
-                             `max-width: 300px;
-                              height: 100px;
-                              margin: auto;
-                              background-color: rgba( 200, 200, 200, 0.75 );
-                              padding: 10px;
-                              position: absolute;
-                              left: 70%;
-                              right: 1%;
-                              bottom: 10px;
-                             `
-                            )
+
 var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
-document.body.appendChild( instructionDiv );
+// document.body.appendChild( instructionDiv );
 
 function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
@@ -97,12 +81,12 @@ function updateModel( newModelName ){
 
     if ( newModelName in modelDictionary ){
         currentModel = new modelDictionary[newModelName]( scene );
-
+        instructionDiv = document.getElementById( 'instruction-div' );
         instructionDiv.innerHTML = "<p>" + currentModel.instructionString
                                   + "</p> " + linkString;
         var modalDiv = document.getElementById( 'modal-content' );
         modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
-
+        document.getElementById( 'model-div' ).innerHTML = '';
     } else {
         console.log( "Model not in dictionary" );
     }

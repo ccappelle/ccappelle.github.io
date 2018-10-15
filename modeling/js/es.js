@@ -66,8 +66,12 @@ class ES extends SuperModel {
     constructor( scene, params={} ){
         super( scene );
         this.timer = 0.0;
+        this.pause = false;
 
-        this.instructionString = `Visualization of ES algorithms on benchmarks`;
+        this.instructionString = `Visualization of ES algorithms on different functions. Green dots represent the
+                                  current population. The orange dot represents the best solution found so far.
+                                 `;
+
         this.modalContent = `Evolutionary Strategies (ES) is an evolutionary optimization method.
                              At each iteration of the algorithm, the individuals, represented by
                              the green dots, produced mutant offspring normaly distributed using variance
@@ -77,6 +81,8 @@ class ES extends SuperModel {
         this.xySize = 10;
         this.maxLimit = 5;
         this.minLimit = -5;
+
+        this.bestFound = null;
 
         this.populationSize = 40;
         this.sigma1 = 0.1;
@@ -126,6 +132,11 @@ class ES extends SuperModel {
         this.updateMeshFromFunction();
         this.needsupdate = false;
 
+        this.restart = this.initPopulation;
+        this.togglePause = function() { this.pause = !this.pause };
+        // add gui options
+        this.gui.add( this, "restart" );
+        this.gui.add( this, "togglePause" );
         var controller = this.gui.add( this, "currentFunction", names );
         this.gui.add( this, "ups" ).min( 1 ).max( 50 ).step( 1 );
         this.gui.add( this, "sigma1" ).min( 0 ).max( 1.0 ).step( 0.01 );
@@ -141,6 +152,12 @@ class ES extends SuperModel {
             this.populationMeshes.push( ballMesh );
         }
 
+        var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
+        var ballMaterial = new THREE.MeshLambertMaterial( { color: 0xf05011 } );
+        this.bestMesh = new THREE.Mesh( ballGeom, ballMaterial );
+        this.addMesh( scene, this.bestMesh );
+        this.bestMesh.visible = false;
+
         this.initPopulation();
     }
 
@@ -149,26 +166,44 @@ class ES extends SuperModel {
     }
 
     animate( scene, camera, dt ){
-        this.timer += dt;
-
         super.animate( scene, camera, dt );
         if ( this.needsupdate ){
             this.updateMeshFromFunction();
             this.needsupdate = false;
         }
 
+
+        this.timer += dt;
         if ( this.timer > 1.0 / this.ups ){
             this.timer = 0.0;
-
-            this.runEvoStep();
-
+            if ( !this.pause ) {
+                this.runEvoStep();
+            }
             // draw population meshes
             for ( var i = 0; i < this.populationMeshes.length; i++ ){
                 var x = this.population[i].x;
                 var y = this.population[i].y;
-                var z = this.getFunctionValue( x, y );
+                var z = this.population[i].fitness
                 this.populationMeshes[i].position.set( x, z, y );
             }
+
+            var modelDiv = document.getElementById( 'model-div' );
+
+            if ( this.bestFound != null ){
+                this.bestMesh.position.set( this.bestFound.x,
+                                            this.bestFound.fitness,
+                                            this.bestFound.y );
+
+                modelDiv.innerHTML = '<p align="left"> Best found:<br /> ' + 
+                     '( ' +
+                     this.bestFound.x.toFixed( 2 ) + ', ' +
+                     this.bestFound.y.toFixed( 2 ) + ' ) </p>';
+                this.bestMesh.visible = true;
+            } else {
+                this.bestMesh.visible = false;
+                modelDiv.innerHTML = '';
+            }
+
         }
     }
 
@@ -178,6 +213,18 @@ class ES extends SuperModel {
         children.sort( ESIndividual.compare );
 
         this.population = children.slice(0, this.population.length);
+
+        var bestChild = this.population[0];
+        if ( this.bestFound == null ){
+            this.bestFound = new ESIndividual( bestChild.x, bestChild.y );
+            this.bestFound.fitness = bestChild.fitness;
+        }
+
+        if ( ESIndividual.compare( bestChild, this.bestFound ) < 0 ){
+            this.bestFound.x = bestChild.x;
+            this.bestFound.y = bestChild.y;
+            this.bestFound.fitness = bestChild.fitness;
+        }
     }
 
     tournamentSelect( k=2 ){
@@ -229,6 +276,7 @@ class ES extends SuperModel {
 
 
     initPopulation(){
+        this.bestFound = null;
         this.population = []
         for ( var i = 0; i < this.populationSize; i++ ){
             this.population.push( new ESIndividual( Math.random() * 8.0 - 4.0,
@@ -239,6 +287,8 @@ class ES extends SuperModel {
     }
 
     updateMeshFromFunction(){
+        this.bestFound = null;
+
         var x, y;
         var values = [];
         for ( var i = 0; i < this.N + 1; i++ ){
