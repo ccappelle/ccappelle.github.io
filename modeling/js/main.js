@@ -173,7 +173,6 @@ function onDocumentKeyDown( event ){
 }
 
 function onMouseMove( event ){
-
     if ( dropdown.value in nameDictionary ){
         if ( typeof nameDictionary[currentModel].setMouse === 'function' ){
             var x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -184,6 +183,10 @@ function onMouseMove( event ){
 }
 
 function onMouseClick( event ){
+    if ( event.target == document.getElementById( "modal" ) ){
+        modal.style.display = "none";
+    }
+
     if ( dropdown.value in nameDictionary ){
         if ( typeof nameDictionary[currentModel].mouseClick === 'function' ){
             nameDictionary[currentModel].mouseClick( event );
@@ -193,7 +196,6 @@ function onMouseClick( event ){
 
 window.addEventListener( 'mousemove', onMouseMove, false );
 window.addEventListener( 'click', onMouseClick, false );
-
 addPlane();
 addLights();
 resubmit();

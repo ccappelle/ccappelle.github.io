@@ -2,14 +2,12 @@
 class SuperModel {
     constructor( scene, camera ){
         this.sceneMeshes = [];
-        this.instructionString = `Please select a model 
-                                  from the dropdown selector 
-                                  in the top left of the page.`;
+        this.instructionString = `WORK IN PROGRESS`;
+        this.modalContent = `WORK IN PROGRESS`;
         this.gui = new dat.GUI();
         this.pause = false;
         this.mouseX = 0;
         this.mouseY = 0;
-
     }
 
     destroy( scene ){

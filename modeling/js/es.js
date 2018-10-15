@@ -1,22 +1,110 @@
+function gaussian( mu = 0, sigma = 1){
+    var u = 0;
+    var v = 0;
+
+    while( u == 0 ){
+        u = Math.random();
+    }
+    while( v == 0 ){
+        v = Math.random();
+    }
+
+    var ans = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+    return ans * sigma + mu;
+}
+
+esVertexShader = `
+
+    varying vec3 pout;
+    void main(){
+        pout = ( modelMatrix * vec4( position, 1.0 ) ).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
+`
+
+esFragmentShader = `
+    varying vec3 pout;
+
+    const highp vec4 color1 = vec4( 1.0 , 0.2, 0.0, 1.0 );
+    const highp vec4 color2 = vec4( 0.0 , 0.2, 1.0, 1.0 );
+
+    void main(){
+        float interValue = ( pout.y + 4.0 ) / 8.0;
+        gl_FragColor = color1 * interValue + color2 * ( 1.0 - interValue );
+    }
+`
+
+class ESIndividual {
+    constructor( x, y ){
+        this.x = x;
+        this.y = y;
+        this.fitness = 0;
+    }
+
+    createChild( sigma1, sigma2 ){
+        var childX = gaussian( this.x, sigma1 );
+        var childY = gaussian( this.y, sigma2 );
+
+        return new ESIndividual( childX, childY );
+    }
+
+    setFitness( fit ){
+        this.fitness = fitness;
+    }
+
+    static compare( indv1, indv2 ){
+        if ( indv1.fitness > indv2.fitness ){
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+}
 
 class ES extends SuperModel {
     constructor( scene, params={} ){
         super( scene );
-        this.instructionString = `Visualization of ES algorithms on benchmarks
-                                 `
-        this.N = 50;
+        this.timer = 0.0;
+
+        this.instructionString = `Visualization of ES algorithms on benchmarks`;
+        this.modalContent = `Evolutionary Strategies (ES) is an evolutionary optimization method.
+                             At each iteration of the algorithm, the individuals, represented by
+                             the green dots, produced mutant offspring normaly distributed using variance
+                             sigma1 and sigma2. Individuals who are more fit are more likely to produce
+                             offspring. Thus the population climbs the peaks of the objective functions`; 
+        this.N = 150;
         this.xySize = 10;
+        this.maxLimit = 5;
+        this.minLimit = -5;
+
+        this.populationSize = 40;
+        this.sigma1 = 0.1;
+        this.sigma2 = 0.1;
+
+        this.population = [];
+        this.populationMeshes = [];
+
+        this.minValue = 0.0;
+        this.maxValue = 1.0;
 
         this.functionDictionary = { "X + Y": this.xPlusY,
-                                    "X * Y": this.xTimesY
-                                  }
+                                    "X * Y": this.xTimesY,
+                                    "Rastrigin": this.rastrigin,
+                                    "Ackley" : this.ackley,
+                                    "Rosenbrock": this.rosenbrock
+                                  };
+        var names = [ "X + Y", "X * Y", "Rastrigin", "Ackley" ];
+
         this.currentFunction = "X + Y";
-        this.populationSize = 10;
+        
         this.reproductionSize = 100;
         this.speed = 1.0;
 
         this.zscale = 0.5;
         this.xyscale = 1.0;
+
+        this.ups = 10;
 
         // init mesh
         var geometry = new THREE.PlaneGeometry( this.xySize,
@@ -24,29 +112,130 @@ class ES extends SuperModel {
                                                 this.N,
                                                 this.N);
 
-        var material = new THREE.MeshLambertMaterial( { color: 0xff0000,
-                                                    side: THREE.DoubleSide,
-                                                    wireframe: true,
-                                                    transparent: true,
-                                                    opacity: 1.0,
-                                                    });
-
+        var material = new THREE.ShaderMaterial( {
+                                    vertexShader: esVertexShader,
+                                    fragmentShader: esFragmentShader,
+                                    side: THREE.DoubleSide,
+                                    // wireframe: true
+                                    wireframe: false
+                                });
         this.functionCurve = new THREE.Mesh( geometry, material );
-
-        this.updateMeshFromFunction();
-        this.functionCurve.rotation.x = -Math.PI / 2;
+        this.functionCurve.rotation.x = -Math.PI / 2.0;
         this.addMesh( scene, this.functionCurve );
 
-        this.gui.add( this, "zscale" ).min( 0.01 ).max( 2 ).step( 0.01 );
+        this.updateMeshFromFunction();
+        this.needsupdate = false;
+
+        var controller = this.gui.add( this, "currentFunction", names );
+        this.gui.add( this, "ups" ).min( 1 ).max( 50 ).step( 1 );
+        this.gui.add( this, "sigma1" ).min( 0 ).max( 1.0 ).step( 0.01 );
+        this.gui.add( this, "sigma2" ).min( 0 ).max( 1.0 ).step( 0.01 );
+        controller.onFinishChange( (e) => { this.guiNeedsUpdate( e ) } );
+
+        for ( var i = 0; i < this.populationSize; i++ ){
+            var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
+            var ballMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00 } );
+            var ballMesh = new THREE.Mesh( ballGeom, ballMaterial );
+
+            this.addMesh( scene, ballMesh );
+            this.populationMeshes.push( ballMesh );
+        }
+
+        this.initPopulation();
+    }
+
+    guiNeedsUpdate( e ){
+        this.needsupdate = true;
     }
 
     animate( scene, camera, dt ){
-        super.animate( scene, camera, dt );
+        this.timer += dt;
 
+        super.animate( scene, camera, dt );
+        if ( this.needsupdate ){
+            this.updateMeshFromFunction();
+            this.needsupdate = false;
+        }
+
+        if ( this.timer > 1.0 / this.ups ){
+            this.timer = 0.0;
+
+            this.runEvoStep();
+
+            // draw population meshes
+            for ( var i = 0; i < this.populationMeshes.length; i++ ){
+                var x = this.population[i].x;
+                var y = this.population[i].y;
+                var z = this.getFunctionValue( x, y );
+                this.populationMeshes[i].position.set( x, z, y );
+            }
+        }
     }
 
     runEvoStep( ){
-        
+        var children = this.spawnChildren();
+
+        children.sort( ESIndividual.compare );
+
+        this.population = children.slice(0, this.population.length);
+    }
+
+    tournamentSelect( k=2 ){
+        var i = Math.floor( Math.random() * this.population.length );
+        var j = Math.floor( Math.random() * this.population.length );
+
+        var which = ESIndividual.compare( this.population[i], this.population[j] );
+        console.log( )
+        if ( which == 1 ){
+            return j;
+        } else {
+            return i;
+        }
+        // var fit1 = this.population[i].fitthis.getFunctionValue( this.population[i].x, this.population[i].y );
+        // var fit2 = this.getFunctionValue( this.population[j].x, this.population[j].y );
+
+        // if ( fit1 < fit2 ){
+        //     return j;
+        // } else {
+        //     return i;
+        // }
+    }
+
+    spawnChildren(){
+        var lambda = 100;
+        var children = [];
+
+        for ( var i = 0; i < lambda; i++ ){
+            // pick parent
+            var index = this.tournamentSelect();
+            // mutate parent
+            var parent = this.population[index];
+
+            var child = parent.createChild( this.sigma1, this.sigma2 );
+
+            // var childX = gaussian( parent.x, this.sigma1 );
+            // var childY = gaussian( parent.y, this.sigma2 );
+
+            child.x = Math.max( this.minLimit, Math.min( this.maxLimit, child.x ) );
+            child.y = Math.max( this.minLimit, Math.min( this.maxLimit, child.y ) );
+
+            child.fitness = this.getFunctionValue( child.x, child.y );
+            // append child
+            children.push( child );
+        }
+
+        return children;
+    }
+
+
+    initPopulation(){
+        this.population = []
+        for ( var i = 0; i < this.populationSize; i++ ){
+            this.population.push( new ESIndividual( Math.random() * 8.0 - 4.0,
+                                                    Math.random() * 8.0 - 4.0)
+                                );
+            this.population[i].fitness = this.getFunctionValue( this.population[i].x, this.population[i].y );
+        }
     }
 
     updateMeshFromFunction(){
@@ -56,27 +245,31 @@ class ES extends SuperModel {
             x = i * this.xySize / this.N - this.xySize / 2;
             for ( var j = 0; j < this.N + 1; j++ ){
                 y = j * this.xySize / this.N - this.xySize / 2;
-                values.push( this.rastrigin( x, y ) );
+                //values.push( this.rastrigin( x, y ) );
+                values.push( this.functionDictionary[ this.currentFunction ]( x, y ) );
                 // console.log( i, j, x, y, x + y );
                 // this.functionCurve.geometry.vertices[i * this.N + j].z = ( x * y ) * this.zscale;
             }
         }
 
         // squash so that min is at -4, max is at +4
-        var minValue = Math.min(...values);
-        var maxValue = Math.max(...values);
+        this.minValue = Math.min(...values);
+        this.maxValue = Math.max(...values);
 
         for ( var i = 0; i < values.length; i++ ){
             var squashedValue;
-            if ( maxValue !== minValue ){
-                squashedValue = ( values[i] - minValue ) / ( maxValue - minValue ) * 8.0 - 4.0
+            if ( this.maxValue !== this.minValue ){
+                squashedValue = ( values[i] - this.minValue ) / ( this.maxValue - this.minValue ) * 8.0 - 4.0
             } else {
-                squashedValue = values[i];
+                squashedValue = 0;
             }
             
             this.functionCurve.geometry.vertices[i].z = squashedValue;
-            // this.functionCurve.geometry.
+            // this.functionCurve.geometry.vertices[i].z = this.getFunctionValue( x, y )
         }
+
+        this.functionCurve.geometry.verticesNeedUpdate = true;
+        this.functionCurve.geometry.elementsNeedUpdate = true;
     }
 
     xPlusY( x, y ){
@@ -88,6 +281,24 @@ class ES extends SuperModel {
     }
 
     rastrigin( x, y ){
-        return 20.0 + x * x - 10 * Math.cos( 2 * Math.PI * x ) + y * y - 10 * Math.cos( 2 * Math.PI * y );
+        return - ( 20.0 + x * x - 10 * Math.cos( 2 * Math.PI * x ) + y * y - 10 * Math.cos( 2 * Math.PI * y ) );
+    }
+
+    getFunctionValue( x, y ){
+        var realValue = this.functionDictionary[ this.currentFunction ]( x, y );
+
+        if ( this.maxValue !== this.minValue ){
+            return ( realValue - this.minValue ) / ( this.maxValue - this.minValue ) * 8.0 - 4.0;
+        } else {
+            return 0;
+        }
+    }
+
+    ackley( x, y ){
+        return - ( -20 * Math.exp( - 0.2 * Math.sqrt( 0.5 * ( x * x + y * y ) ) ) - Math.exp( 0.5 * ( Math.cos( 2 * Math.PI * x ) * Math.cos( 2 * Math.PI * y ) ) ) + Math.E + 20.0 );
+    }
+
+    rosenbrock( x, y, a = 1, b = 10 ){
+        return - ( ( a - x ) * ( a - x ) + b * ( y - x * x ) * ( y - x * x ) );
     }
 }

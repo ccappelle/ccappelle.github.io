@@ -2,7 +2,7 @@ var currentModel;
 var scene, camera, renderer, controls, clock;
 
 var modelDictionary = {
-    "Empty"                   : SuperModel,
+    "Empty"                   : Empty,
     "Evolutionary Strategies" : ES
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
@@ -31,7 +31,7 @@ instructionDiv.setAttribute( "style",
                              `max-width: 300px;
                               height: 100px;
                               margin: auto;
-                              background-color: rgba( 200, 200, 200, 0.5 );
+                              background-color: rgba( 200, 200, 200, 0.75 );
                               padding: 10px;
                               position: absolute;
                               left: 70%;
@@ -39,6 +39,8 @@ instructionDiv.setAttribute( "style",
                               bottom: 10px;
                              `
                             )
+var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
+
 document.body.appendChild( instructionDiv );
 
 function addGround(){
@@ -96,15 +98,26 @@ function updateModel( newModelName ){
     if ( newModelName in modelDictionary ){
         currentModel = new modelDictionary[newModelName]( scene );
 
-        instructionDiv.innerHTML= "<p>" + currentModel.instructionString
-                                  + "</p>";
+        instructionDiv.innerHTML = "<p>" + currentModel.instructionString
+                                  + "</p> " + linkString;
+        var modalDiv = document.getElementById( 'modal-content' );
+        modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
+
     } else {
         console.log( "Model not in dictionary" );
     }
     
 }
 
+function onMouseClick( event ){
+    if ( event.target == document.getElementById( 'modal' ) ){
+        document.getElementById( 'modal' ).style.display = "none";
+    }
+}
 
+function openModal(){
+    document.getElementById( 'modal' ).style.display = 'block';
+}
 scene = new THREE.Scene();
 // fov, aspect ratio, near clip, far clip
 camera = new THREE.PerspectiveCamera( 75,
@@ -123,7 +136,7 @@ controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 // resize listener
 window.addEventListener( "resize", onWindowResize, false );
-
+window.addEventListener( "click", onMouseClick, false );
 // keydown listener
 
 clock = new THREE.Clock();
