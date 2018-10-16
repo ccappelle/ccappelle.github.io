@@ -143,18 +143,16 @@ class ES extends SuperModel {
         this.gui.add( this, "sigma2" ).min( 0 ).max( 1.0 ).step( 0.01 );
         controller.onFinishChange( (e) => { this.guiNeedsUpdate( e ) } );
 
+        var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
+        var ballMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00 } );
         for ( var i = 0; i < this.populationSize; i++ ){
-            var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
-            var ballMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00 } );
             var ballMesh = new THREE.Mesh( ballGeom, ballMaterial );
 
             this.addMesh( scene, ballMesh );
             this.populationMeshes.push( ballMesh );
         }
 
-        var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
-        var ballMaterial = new THREE.MeshLambertMaterial( { color: 0xf05011 } );
-        this.bestMesh = new THREE.Mesh( ballGeom, ballMaterial );
+        this.bestMesh = new THREE.Mesh( ballGeom, new THREE.MeshLambertMaterial( { color: 0xf05011 } ) );
         this.addMesh( scene, this.bestMesh );
         this.bestMesh.visible = false;
 
