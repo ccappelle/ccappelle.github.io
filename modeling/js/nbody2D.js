@@ -101,17 +101,17 @@ class NBody2D extends SuperModel{
     }
 
     static createQuadTreeNode( xtop, ytop, xbottom, ybottom ){
-        var node = {
-            xtop: xtop,
-            ytop: ytop,
-            xbottom: xbottom,
-            ybottom: ybottom,
-            xmid: ( xtop - xbottom ) / 2.0,
-            ymid: ( ytop - ybottom ) / 2.0,
-            mass: 0,
-            count: 0,
-            node.children: [null, null, null, null];
-        }
+        // var node = {
+        //     xtop: xtop,
+        //     ytop: ytop,
+        //     xbottom: xbottom,
+        //     ybottom: ybottom,
+        //     xmid: ( xtop - xbottom ) / 2.0,
+        //     ymid: ( ytop - ybottom ) / 2.0,
+        //     mass: 0,
+        //     count: 0,
+        //     node.children: [null, null, null, null]
+        // }
     }
 
 }

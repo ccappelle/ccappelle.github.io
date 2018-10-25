@@ -4,11 +4,13 @@ var scene, camera, renderer, controls, clock;
 var modelDictionary = {
     "Empty"                   : Empty,
     "Evolutionary Strategies" : ES,
+    "Inverse Kinematics"      : IK,
+    "ODE Solvers"             : ODEDemo,
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
     // "L-systems"       : Lsystem,
     // "3D Model Viewer" : Viewer,
-    "NBody 2D"                : NBody2D,
+    // "NBody 2D"                : NBody2D,
     "Water 2D"                : Water2D
 }
 
