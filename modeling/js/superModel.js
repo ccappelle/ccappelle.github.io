@@ -8,6 +8,8 @@ class SuperModel {
         this.pause = false;
         this.mouseX = 0;
         this.mouseY = 0;
+
+        this.pause = false;
     }
 
     destroy( scene ){

@@ -6,7 +6,7 @@ var modelDictionary = {
     "Evolutionary Strategies" : ES,
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
-    // "L-systems"       : Lsystem,
+    "L-systems"       : Lsystem,
     // "3D Model Viewer" : Viewer,
     "NBody 2D"                : NBody2D,
     "Water 2D"                : Water2D
@@ -22,7 +22,6 @@ for (const [key, value] of Object.entries( modelDictionary ) ) {
     modelOption.text = key;
     modelSelector.appendChild( modelOption );
 }
-
 
 var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
