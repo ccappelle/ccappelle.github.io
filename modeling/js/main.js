@@ -6,6 +6,7 @@ var modelDictionary = {
     "Evolutionary Strategies" : ES,
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
+    "Inverse Kinematics" : IK,
     "L-systems"       : Lsystem,
     // "3D Model Viewer" : Viewer,
     "NBody 2D"                : NBody2D,
