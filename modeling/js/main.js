@@ -9,8 +9,8 @@ var modelDictionary = {
     "Inverse Kinematics" : IK,
     "L-systems"       : Lsystem,
     // "3D Model Viewer" : Viewer,
-    "NBody 2D"                : NBody2D,
-    "Water 2D"                : Water2D
+    // "NBody 2D"                : NBody2D,
+    // "Water 2D"                : Water2D
 }
 
 // create selector
