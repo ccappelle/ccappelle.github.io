@@ -1,107 +1,34 @@
-var lsystem = new Lsystem();
-var gol = new GameOfLife();
-var viewer = new Viewer();
-var water2d = new Water2D();
-var empty = {};
+var currentModel;
+var scene, camera, renderer, controls, clock;
 
-empty.instructionString = "Welcome to the " +
-        "Modeling Suite." +
-        "Please select an example in the lower "+
-        "left hand corner and " +
-        "press resubmit to view";
-
-empty.animate = function ( scene, dt, pause=false ){
-
+var modelDictionary = {
+    "Empty"                   : Empty,
+    "Evolutionary Strategies" : ES,
+    // "Empty"           : Empty,
+    // "Game of Life"    : GameOfLife,
+    "Inverse Kinematics" : IK,
+    "L-systems"       : Lsystem,
+    // "3D Model Viewer" : Viewer,
+    "NBody 2D"                : NBody2D,
+    "Water 2D"                : Water2D
 }
 
-empty.clean = function ( scene ){
-    
+// create selector
+var modelSelector = document.getElementById( "model-selector" );
+modelSelector.addEventListener( "change", changeModel );
+
+for (const [key, value] of Object.entries( modelDictionary ) ) {
+    var modelOption = document.createElement( "option" );
+    modelOption.value = key;
+    modelOption.text = key;
+    modelSelector.appendChild( modelOption );
 }
 
-empty.render = function ( renderer, scene, camera ){
-    renderer.render( scene, camera );
-}
+var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
+// document.body.appendChild( instructionDiv );
 
-empty.init = function ( scene ){
-
-}
-
-var nameDictionary = {
-    "ik2d": ik2d,
-    "empty": empty,
-    "lsystem": lsystem,
-    "gol": gol,
-    "viewer": viewer,
-    "water2d": water2d
-};
-
-// HTML THINGIES -------------
-// get dropdown selector
-var dropdown = document.getElementById("modelDropdown");
-var resubmitButton = document.getElementById("resubmit");
-resubmitButton.addEventListener( "click", resubmit);
-
-var instructionDiv = document.getElementById( "instructions" )
-
-var currentModel = dropdown.value;
-
-// ----------------------------
-
-
-var scene = new THREE.Scene();
-
-// Create a basic perspective camera
-var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
-camera.position.set( 8, 0, 15 );
-
-// Create a renderer with Antialiasing
-var renderer = new THREE.WebGLRenderer({antialias:true});
-
-// Configure renderer clear color
-renderer.setClearColor("#F0F0F0");
-
-// Configure renderer size
-renderer.setSize( window.innerWidth, window.innerHeight );
-
-// Append Renderer to DOM
-document.body.appendChild( renderer.domElement );
-
-controls = new THREE.OrbitControls( camera, renderer.domElement );
-
-// window resize listener
-window.addEventListener( "resize", onWindowResize, false );
-document.addEventListener( "keydown", onDocumentKeyDown, false );
-
-var clock = new THREE.Clock();
-
-// Render Loop
-function animate(){
-  requestAnimationFrame( animate );
-  var dt = clock.getDelta();
-
-  if ( currentModel in nameDictionary ){
-    nameDictionary[currentModel].animate( scene, dt);
-  } else {
-    console.log( currentModel + ' not in dictionary' );
-  }
-
-  controls.update();
-  // Render the scene
-  render();
-};
-
-function render( ){
-    if ( currentModel in nameDictionary ){
-        nameDictionary[currentModel].render( renderer, scene, camera );
-    } else {
-        console.log( currentModel + ' not in dictionary' );
-    }
-    // renderer.render(scene, camera);
-}
-
-function addPlane(){
-    // Create textured plane
+function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
@@ -116,86 +43,90 @@ function addPlane(){
     scene.add( plane );
 }
 
-function addLights() {
-        // add lights
-    ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
-    pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
+function addLights(){
+    var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
+    var pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
     pointLight.position.set( 10, 10, 3 );
     scene.add( ambientLight );
     scene.add( pointLight );
-
 }
 
-function resubmit(){
+function changeModel( event ){
+    // var currentModel = document.getElementById( "ModelSelector" );
+    console.log( event.target.value );
 
-    var dropdownValue = dropdown.value;
-    // update to dropdown value
-    // if ( dropdown.value == "ik2d" ){
-    //     console.log( ik2d.name );
-    // }
-    // else { console.log( dropdown.value ); }
-
-    if ( currentModel in nameDictionary ){
-        nameDictionary[currentModel].clean( scene );
-    }
-    // clean instruction div
-    document.getElementById( "instructions" ).innerHTML = "";
-    document.getElementById( "special" ).innerHTML = "";
-    
-    if ( dropdownValue in nameDictionary ){
-        nameDictionary[dropdownValue].init( scene , camera );
-        // update text in instruction box
-        var p = document.createElement( "p" );
-        var text = document.createTextNode( nameDictionary[dropdownValue].instructionString );
-        p.appendChild( text );
-        instructionDiv.appendChild( p );
-        // nameDictionary[dropdownValue].updateInstructions( instructionDiv );
-    }
-
-    currentModel = dropdownValue;
+    updateModel( event.target.value );
 }
 
-function onWindowResize() {
-    // resize and update camera on window resize
+function onWindowResize(){
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
-function onDocumentKeyDown( event ){
-    if ( dropdown.value in nameDictionary ){
-        if ( typeof nameDictionary[currentModel].keyDown === 'function' ){
-            nameDictionary[currentModel].keyDown( event );
-        }
-    }
+function run(){
+    requestAnimationFrame( run );
+    var dt = clock.getDelta();
 
+    currentModel.animate( scene, camera, dt );
+
+    controls.update();
+    currentModel.render( renderer, scene, camera );
 }
 
-function onMouseMove( event ){
-
-    if ( dropdown.value in nameDictionary ){
-        if ( typeof nameDictionary[currentModel].setMouse === 'function' ){
-            var x = ( event.clientX / window.innerWidth ) * 2 - 1;
-            var y = 1 - ( event.clientY / window.innerHeight ) * 2;
-            nameDictionary[currentModel].setMouse( x, y );
-        } 
+function updateModel( newModelName ){
+    if ( currentModel instanceof SuperModel ){
+        currentModel.destroy( scene );
     }
+
+    if ( newModelName in modelDictionary ){
+        currentModel = new modelDictionary[newModelName]( scene );
+        instructionDiv = document.getElementById( 'instruction-div' );
+        instructionDiv.innerHTML = "<p>" + currentModel.instructionString
+                                  + "</p> " + linkString;
+        var modalDiv = document.getElementById( 'modal-content' );
+        modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
+        document.getElementById( 'model-div' ).innerHTML = '';
+    } else {
+        console.log( "Model not in dictionary" );
+    }
+    
 }
 
 function onMouseClick( event ){
-    if ( dropdown.value in nameDictionary ){
-        if ( typeof nameDictionary[currentModel].mouseClick === 'function' ){
-            nameDictionary[currentModel].mouseClick( event );
-        } 
+    if ( event.target == document.getElementById( 'modal' ) ){
+        document.getElementById( 'modal' ).style.display = "none";
     }
 }
 
-window.addEventListener( 'mousemove', onMouseMove, false );
-window.addEventListener( 'click', onMouseClick, false );
+function openModal(){
+    document.getElementById( 'modal' ).style.display = 'block';
+}
+scene = new THREE.Scene();
+// fov, aspect ratio, near clip, far clip
+camera = new THREE.PerspectiveCamera( 75,
+                                      window.innerWidth / window.innerHeight,
+                                      0.1,
+                                      1000 );
+camera.position.set( 8, 0, 15 );
 
-addPlane();
+renderer = new THREE.WebGLRenderer( { antialias: true} );
+renderer.setClearColor( "#f0f0f0" );
+renderer.setSize( window.innerWidth,
+                  window.innerHeight );
+document.body.appendChild( renderer.domElement );
+
+controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+// resize listener
+window.addEventListener( "resize", onWindowResize, false );
+window.addEventListener( "click", onMouseClick, false );
+// keydown listener
+
+clock = new THREE.Clock();
+
+addGround();
 addLights();
-resubmit();
-animate();
-
+updateModel( "Empty" );
+run();
