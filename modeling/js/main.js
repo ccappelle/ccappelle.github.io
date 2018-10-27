@@ -3,6 +3,7 @@ var scene, camera, renderer, controls, clock;
 
 var modelDictionary = {
     "Empty"                   : Empty,
+    "Boids"                   : Boids,
     "Evolutionary Strategies" : ES,
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
