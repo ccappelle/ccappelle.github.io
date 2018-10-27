@@ -45,8 +45,8 @@ class IK extends SuperModel{
 		this.ballPosition = new THREE.Vector3( 5, 0, 0 );
 		this.ballColor = 0x00ff00;
 
-		var ballMaterial = new THREE.MeshBasicMaterial( { color : this.ballColor } );
-		var ballGeometry = new THREE.SphereGeometry( 0.2, 32, 32 );
+		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.ballColor } );
+		var ballGeometry = new THREE.SphereGeometry( 0.3, 32, 32 );
 		this.ballMesh = new THREE.Mesh( ballGeometry, ballMaterial );
 
 		this.ballMesh.position.set( 5, 0, 0 );
@@ -83,7 +83,7 @@ class IK extends SuperModel{
 
 		this.controlMeshes = [];
 		var controlMat = new THREE.MeshBasicMaterial( { color : 0x000000 } );
-		var controlGeom = new THREE.SphereGeometry(0.2, 10, 10 );
+		var controlGeom = new THREE.SphereGeometry(0.3, 10, 10 );
 		var mesh = new THREE.Mesh( controlGeom, controlMat );
 		this.addMesh( scene, mesh );
 		this.controlMeshes.push( mesh );
@@ -96,27 +96,33 @@ class IK extends SuperModel{
 
 		if ( this.recalcFABRIK ){
 			this.runFABRIK();
+			this.updateBones();
 			this.recalcFABRIK = false;
 		}
-		
+	}
+
+	updateBones( ){
+		// set control meshes position
+		for ( var i = 0; i < this.controlPoints.length; i ++ ){
+			this.controlMeshes[i].position.set( this.controlPoints[i].x,
+												this.controlPoints[i].y,
+												this.controlPoints[i].z
+											  );
+		}
+
+		var xUnitVector = new THREE.Vector3( 1, 0, 0 );
 
 		// draw control points
-		for ( var i = 0; i < this.controlPoints.length; i++ ){
-			var point = this.controlPoints[i];
-			this.controlMeshes[i].position.set( point.x, point.y, point.z );
-			if ( i < this.controlPoints.length - 1 ){
-				var point2 = this.controlPoints[i + 1];
-				this.boneMeshes[i].geometry.vertices[0].x = point.x;
-				this.boneMeshes[i].geometry.vertices[0].y = point.y;
-				this.boneMeshes[i].geometry.vertices[0].z = point.z;	
-		
-				this.boneMeshes[i].geometry.vertices[1].x = point2.x;
-				this.boneMeshes[i].geometry.vertices[1].y = point2.y;
-				this.boneMeshes[i].geometry.vertices[1].z = point2.z;
-
-				this.boneMeshes[i].geometry.verticesNeedUpdate = true;
-
-			}
+		for ( var i = 0; i < this.bones.length; i++ ){
+			var quaternion = new THREE.Quaternion();
+			quaternion.setFromUnitVectors( xUnitVector, this.bones[i].direction );
+			this.boneMeshes[i].setRotationFromQuaternion( quaternion );
+			this.boneMeshes[i].position.set( this.bones[i].position.x,
+											 this.bones[i].position.y,
+											 this.bones[i].position.z
+										    );
+			// this.boneMeshes[i].rotation.x = 0.0;
+			this.boneMeshes[i].scale.set( this.bones[i].length, 1, 1 );
 		}
 	}
 
@@ -150,17 +156,21 @@ class IK extends SuperModel{
 			return;
 		}
 
-		var controlMat = new THREE.MeshBasicMaterial( { color : 0x000000 } );
-		var controlGeom = new THREE.SphereGeometry(0.1, 10, 10 );
+		var controlMat = new THREE.MeshStandardMaterial( { color : 0x000000 } );
+		var controlGeom = new THREE.SphereGeometry(0.2, 10, 10 );
 		var mesh = new THREE.Mesh( controlGeom, controlMat );
 		this.controlMeshes.push( mesh );
 
-		var boneMat = new THREE.LineBasicMaterial( { color : 0xff0000 } );
-		var boneGeom = new THREE.Geometry();
-		boneGeom.vertices.push( new THREE.Vector3( 0.0, 0.0, 0.0 ),
-								new THREE.Vector3( 0.0, 0.0, 0.0 ) );
-		boneGeom.dynamic = true;
-		var boneMesh = new THREE.Line( boneGeom, boneMat );
+		// var boneMat = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+		// var boneGeom = new THREE.Geometry();
+		// boneGeom.vertices.push( new THREE.Vector3( -0.5, 0.0, 0.0 ),
+		// 						new THREE.Vector3( 0.5, 0.0, 0.0 ) );
+		// boneGeom.dynamic = true;
+		// var boneMesh = new THREE.Line( boneGeom, boneMat );
+
+		var boneMat = new THREE.MeshStandardMaterial( { color : 0xff0000 } );
+		var boneGeom = new THREE.BoxGeometry( 1, 0.2, 0.2 );
+		var boneMesh = new THREE.Mesh( boneGeom, boneMat );
 		this.boneMeshes.push( boneMesh );
 
 		var bone = {
@@ -171,7 +181,8 @@ class IK extends SuperModel{
 			upperLimit : 180,
 			axis : new THREE.Vector3( 0, 0, 1 ),
 			color : 0xff0000,
-			direction : ( new THREE.Vector3( 1, 0, 0 ) ).normalize()
+			direction : ( new THREE.Vector3( 1, 0, 0 ) ).normalize(),
+			position : new THREE.Vector3()
 		}
 
 		this.bones.push( bone );
@@ -183,6 +194,9 @@ class IK extends SuperModel{
 							   .onChange( ( value ) => boneMesh.material.color.setHex( value ) );
 
 		var point = this.controlPoints[index].clone();
+		bone.position = point.clone();
+		bone.position.addScaledVector( bone.direction, bone.length / 2.0 );
+
 		point.addScaledVector( bone.direction, bone.length );
 		this.controlPoints.push( point );
 
@@ -214,6 +228,11 @@ class IK extends SuperModel{
 					var length = this.bones[index].length;
 					var cpNext = cpSource.clone();
 					cpNext.addScaledVector( direction, length );
+					if ( count == 0 ){ // add little nudge to remove 0 cases
+						var randomVec = new THREE.Vector3( Math.random(), Math.random(), Math.random() );
+						randomVec.addScalar( -0.5 );
+						cpNext.addScaledVector( randomVec, 0.01 );
+					}
 					cpBack.push( cpNext );
 				}
 			}
@@ -233,12 +252,19 @@ class IK extends SuperModel{
 
 					var length = this.bones[i - 1].length;
 					var cpNext = cpSource.clone();
+
+					var midpoint = cpSource.clone();
+					midpoint.addScaledVector( direction, length / 2.0 );
+					this.bones[i - 1].position = midpoint;
+					this.bones[i - 1].direction.copy( direction );
+
 					cpNext.addScaledVector( direction, length );
 					cpForward.push( cpNext );
+
 				}
 			}
 
-
+			// set control points
 			for ( var i = 0; i < this.controlPoints.length; i++ ){
 				this.controlPoints[i] = cpForward[i];
 			}
