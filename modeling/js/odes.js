@@ -99,7 +99,6 @@ class ODEDemo extends SuperModel{
 
         this.dt = 0.1;
         this.y0 = 0;
-        this.scaleFunction = true;
         this.function = this.functionNames[0];
 
         // must go before update
@@ -130,8 +129,6 @@ class ODEDemo extends SuperModel{
                 .step( 0.001 )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
 
-        this.gui.add( this, 'scaleFunction' )
-                .onChange( ( e ) => this.modelShouldUpdate = true);
         this.gui.add( this, 'function', this.functionNames )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
 
@@ -144,6 +141,27 @@ class ODEDemo extends SuperModel{
 
         this.rk4Folder = this.integratorFolder.addFolder( 'RK-4' );
         this.integrators.push( new RK4( this, this.rk4Folder ) );
+
+        this.arrowMeshes = [];
+        // create arrow helpers
+        for ( var i = -5; i <= 5; i += 0.5 ){
+            for ( var j = -5; j <=5; j += 0.5 ){
+                var dir = new THREE.Vector3( 1, 1, 0 );
+                dir.normalize();
+                var pos = new THREE.Vector3( i, j, 0 );
+                var arrow = new THREE.ArrowHelper( 
+                                dir, pos,
+                                0.3, 0x555555,
+                                0.2, 0.1
+                             );
+                this.addMesh( scene, arrow );
+                this.arrowMeshes.push( 
+                        arrow  
+                    );
+            }
+        }
+
+        this.lineMeshes = [];
     }
 
     animate( scene, camera, timeStep ){
@@ -159,8 +177,8 @@ class ODEDemo extends SuperModel{
 
         var currentFunction = this.functionDict[this.function];
         // clear scene
-        for( var i = 1; i < this.sceneMeshes.length; i++ ){
-            scene.remove( this.sceneMeshes[i] );
+        for( var i = 0; i < this.sceneMeshes.length; i++ ){
+            scene.remove( this.lineMeshes[i] );
         }
 
         var ts = [];
@@ -172,16 +190,14 @@ class ODEDemo extends SuperModel{
             var integrator = this.integrators[i];
             var ys = integrator.integrate( currentFunction, ts, this.y0, this.scaleFunction );
 
-
-
-            if ( this.scaleFunction ){
-                const minY = Math.min( ...ys );
-                const maxY = Math.max( ...ys );
-                 // scale input
-                for ( var j = 0; j < ys.length; j++ ){
-                    ys[j] = ( ys[j] - minY ) / ( maxY - minY ) * ( this.tEnd - this.tStart ) + this.tStart;
-                }
-            }
+            // if ( this.scaleFunction ){
+            //     minY = Math.min( ...ys );
+            //     maxY = Math.max( ...ys );
+            //      // scale input
+            //     for ( var j = 0; j < ys.length; j++ ){
+            //         ys[j] = ( ys[j] - minY ) / ( maxY - minY ) * ( this.tEnd - this.tStart ) + this.tStart;
+            //     }
+            // }
 
             var geometry = new THREE.Geometry();
             // var material = new THREE.LineBasicMaterial( { color: 0xfff000 } );
@@ -191,6 +207,23 @@ class ODEDemo extends SuperModel{
             }
             var line = new THREE.Line( geometry, integrator.material );
             this.addMesh( scene, line );
+            this.lineMeshes.push( line );
+        }
+
+        var index = 0;
+        for ( var t = -5; t <= 5; t += 0.5 ){
+            var yStart = -5
+            var yEnd = 5
+            var yStep = ( yEnd - yStart ) / 20.0;
+            for ( var y = yStart; y <= yEnd; y += yStep ){
+                // if ( this.scaleFunction ){
+                var sample = currentFunction( t, y );
+                var dir = new THREE.Vector3( 1, sample, 0 ); 
+                dir.normalize();
+                // }
+                this.arrowMeshes[index].setDirection( dir );
+                index += 1;
+            }
         }
     }
 
