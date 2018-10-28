@@ -4,6 +4,8 @@ var scene, camera, renderer, controls, clock;
 var modelDictionary = {
     "Empty"                   : Empty,
     "Evolutionary Strategies" : ES,
+    "Inverse Kinematics"      : IK,
+    "ODE Solvers"             : ODEDemo,
     // "Empty"           : Empty,
     // "Game of Life"    : GameOfLife,
     "Inverse Kinematics" : IK,
