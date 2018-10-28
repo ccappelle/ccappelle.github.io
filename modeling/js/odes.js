@@ -19,8 +19,8 @@ class ForwardEuler{
             const tPrev = ts[i-1];
             const yPrev = ys[i-1];
             const dt = ts[i] - tPrev;
-
-            ys.push( yPrev + dt * f( tPrev, yPrev ) );
+            const funcEval = f.eval( { t : tPrev, y : yPrev } );
+            ys.push( yPrev + dt * funcEval );
         }
         return ys;        
     }
@@ -61,10 +61,11 @@ class RK4{
 
         for( var i = 1; i < ts.length; i++ ){
             var dt = ts[i] - ts[i - 1];
-            var k1 = dt * f( ts[i - 1], ys[i - 1] );
-            var k2 = dt * f( ts[i - 1] + dt / 2, ys[i - 1] + k1 / 2.0 );
-            var k3 = dt * f( ts[i - 1] + dt / 2, ys[i - 1] + k2 / 2.0 );
-            var k4 = dt * f( ts[i - 1] + dt, ys[i - 1] + k3 );
+            var k1 = dt * f.eval( { t : ts[i - 1], y : ys[i - 1] } );
+            var k2 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k1 / 2.0 } );
+            var k3 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k2 / 2.0 } );
+            var k4 = dt * f.eval( { t : ts[i - 1] + dt, y : ys[i - 1] + k3 } );
+
 
             ys.push( ys[i - 1] + ( 1 / 6.0 ) * ( k1 + 2 * k2 + 2 * k3 + k4 ) );
         }
@@ -76,39 +77,30 @@ class RK4{
 class ODEDemo extends SuperModel{
     constructor ( scene ){
         super( scene );
-        this.functionNames = [ 't',
-                               'cos(t)',
-                               'e^t',
-                               'e^-ty',
-                               'cos(ty)'
-                            ];
-        this.functionList = [ ( t, y ) => t,
-                              ( t, y ) => Math.cos( t ),
-                              ( t, y ) => Math.exp( t ) ,
-                              ( t, y ) => Math.exp( -t * y ),
-                              ( t, y ) => Math.cos( t * y )
-                            ];
 
-        this.functionDict = {};
-        for ( var i = 0; i < this.functionNames.length; i++ ){
-            this.functionDict[this.functionNames[i]] = this.functionList[i];
-        }
+        this.instructionString = `A demo comparing different ODE integrators.`;
+        this.modalContent = `You can read more about ODE integration here
+                             <a href="https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations">
+                                https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations</a>`
+
+        this.yPrime = '-t';
+        this.code = math.parse( this.yPrime ).compile();
 
         this.tStart = -5.0;
         this.tEnd = 5.0;
 
         this.dt = 0.1;
         this.y0 = 0;
-        this.function = this.functionNames[0];
 
         // must go before update
         var grid = new THREE.GridHelper( 10, 10 );
         grid.rotation.x = Math.PI / 2.0;
         this.addMesh( scene, grid );
 
-        // this.udpateModel( scene );
-
         this.modelShouldUpdate = true;
+
+        this.gui.add( this, 'yPrime' ).onFinishChange( ( e ) => { this.code = math.parse( e ).compile();
+                                                                  this.modelShouldUpdate = true } );
 
         this.gui.add( this, 'tStart' )
                 .min( -5.0 ).max( 0.0 ).step( 0.01 )
@@ -127,9 +119,6 @@ class ODEDemo extends SuperModel{
                 .min( 0.001 )
                 .max( 1.0 )
                 .step( 0.001 )
-                .onChange( ( e ) => this.modelShouldUpdate = true );
-
-        this.gui.add( this, 'function', this.functionNames )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
 
         this.integratorFolder = this.gui.addFolder( 'Integrators' );
@@ -175,7 +164,9 @@ class ODEDemo extends SuperModel{
     udpateModel( scene ){
         // draw real function
 
-        var currentFunction = this.functionDict[this.function];
+        // var currentFunction = this.code;
+
+        // var currentFunction = this.functionDict[this.function];
         // clear scene
         for( var i = 0; i < this.sceneMeshes.length; i++ ){
             scene.remove( this.lineMeshes[i] );
@@ -188,7 +179,7 @@ class ODEDemo extends SuperModel{
 
         for ( var i = 0; i < this.integrators.length; i++ ){
             var integrator = this.integrators[i];
-            var ys = integrator.integrate( currentFunction, ts, this.y0, this.scaleFunction );
+            var ys = integrator.integrate( this.code, ts, this.y0, this.scaleFunction );
 
             // if ( this.scaleFunction ){
             //     minY = Math.min( ...ys );
@@ -217,7 +208,8 @@ class ODEDemo extends SuperModel{
             var yStep = ( yEnd - yStart ) / 20.0;
             for ( var y = yStart; y <= yEnd; y += yStep ){
                 // if ( this.scaleFunction ){
-                var sample = currentFunction( t, y );
+                var sample = this.code.eval( { t : t, y : y } );
+                // var sample = currentFunction( t, y );
                 var dir = new THREE.Vector3( 1, sample, 0 ); 
                 dir.normalize();
                 // }
