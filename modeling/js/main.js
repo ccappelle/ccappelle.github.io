@@ -2,12 +2,12 @@ var currentModel;
 var scene, camera, renderer, controls, clock;
 
 var modelDictionary = {
-    "Empty"                   : Empty,
+    "Empty"           : Empty,
     "Evolutionary Strategies" : ES,
+    "Game of Life"    : GOL,
     "Inverse Kinematics"      : IK,
     "ODE Solvers"             : ODEDemo,
     // "Empty"           : Empty,
-    // "Game of Life"    : GameOfLife,
     "Inverse Kinematics" : IK,
     "L-systems"       : Lsystem,
     // "3D Model Viewer" : Viewer,
