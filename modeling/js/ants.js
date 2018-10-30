@@ -16,17 +16,19 @@ class Ants extends SuperModel{
 
         this.ups = 10;
 
-        this.decayPerUpdate = 0.1;
+        this.decayPerUpdate = 0.05;
+
+        this.pheremoneWeight = 100;
 
         this.addAnt = ( e ) => this.addAntInternal( scene );
-
 
         this.gui.add( this, 'pause' );
 
         this.gui.add( this, 'addAnt' );
 
         this.gui.add( this, 'ups' ).min( 1 ).max( 60 ).step( 1 );
-        this.gui.add( this, 'decayPerUpdate').min( 0 ).max( 1.0 ).step( 0.01 );
+        this.gui.add( this, 'decayPerUpdate' ).min( 0 ).max( 1.0 ).step( 0.01 );
+        this.gui.add( this, 'pheremoneWeight' ).min( 0 ).max( 200 ).step( 1 );
 
         this.gui.add( this, 'scale' ).min( 0.1 ).max( 2.0 ).step( 0.1 );
 
@@ -35,7 +37,7 @@ class Ants extends SuperModel{
         // }
 
         // home mesh
-        var homeMaterial = new THREE.MeshStandardMaterial( { color : 0x000000 } );
+        var homeMaterial = new THREE.MeshBasicMaterial( { color : 0x000000, transparent : true, opacity : 0.1 } );
         var homeGeom = new THREE.BoxGeometry( );
         var homeMesh = new THREE.Mesh( homeGeom, homeMaterial );
         homeMesh.scale.set( this.worldScale, this.worldScale, this.worldScale );
@@ -47,7 +49,7 @@ class Ants extends SuperModel{
         this.nodeData = {};
 
         this.addFoodSphereInternal( scene );
-
+        this.addAntInternal( scene );
         this.trackCount = 0;
     }
 
@@ -85,7 +87,7 @@ class Ants extends SuperModel{
                      this.ants[i].position.z == 0 ){
                     this.ants[i].hasFood = false;
                     // drop off food
-
+                    this.ants[i].previousPosition.setScalar( 0 );
                     this.ants[i].mesh.material.color.setHex( 0xff0000 );
                 }
 
@@ -93,7 +95,7 @@ class Ants extends SuperModel{
                 if ( this.ants[i].hasFood == false &&
                      this.getNodeFoodCount( this.ants[i].position ) > 0 ){
                     this.ants[i].hasFood = true;
-                    
+                    this.eatFoodFromNode( scene, this.ants[i].position );
                     this.ants[i].mesh.material.color.setHex( 0x999900 );
                 }
             }
@@ -121,8 +123,8 @@ class Ants extends SuperModel{
 
         var color = 0xffff00;
 
-        var radius = 3; // can only be odd
-        var position = new THREE.Vector3( 9, 5, 0 );
+        var radius = 5; // can only be odd
+        var position = new THREE.Vector3( 10, 10, 0 );
         var richness = 10;
 
         var radiusSquared = radius * radius;
@@ -168,16 +170,22 @@ class Ants extends SuperModel{
     }
 
     addFoodToNode( scene, position, amount ){
+        if ( amount <= 0 ){
+            return;
+        }
+
         var key = this.getNodeKey( position );
 
         if ( key in this.nodeData ){
             this.nodeData[key] += amount;
         } else {
             // create node entry
-            this.nodeData[key] = amount;
-
             // create food mesh
-            var mesh = new THREE.Mesh( new THREE.BoxGeometry(), new THREE.MeshStandardMaterial( { color: 0xffff00, transparent : true } ) );
+            var mesh = new THREE.Mesh( new THREE.BoxGeometry(),
+                                       new THREE.MeshStandardMaterial( { color: 0xffff00, transparent : true } ) );
+            this.nodeData[key] = { amount : amount,
+                                   mesh : mesh };
+
             mesh.position.set( position.x * this.worldScale,
                                position.y * this.worldScale,
                                position.z * this.worldScale);
@@ -186,6 +194,27 @@ class Ants extends SuperModel{
             this.addMesh( scene, mesh );
         }
 
+        // change opacity
+        this.nodeData[key].mesh.material.opacity = Math.max( 1, this.nodeData[key].amount / 10 );
+    }
+
+    eatFoodFromNode( scene, position, amount=1 ){
+        var key = this.getNodeKey( position );
+
+        if ( key in this.nodeData ){
+            this.nodeData[key].amount -= amount;
+            if ( this.nodeData[key].amount  <= 0 ){ // remove node
+                this.removeMesh( scene, this.nodeData[key].mesh );
+                delete this.nodeData[key];
+            } else {
+                var a = Math.min( this.nodeData[key].amount / 10.0, 1 );
+                this.nodeData[key].mesh.scale.setScalar( a * this.worldScale );
+                this.nodeData[key].mesh.material.opacity = a;
+            }
+
+        } else {
+            console.log( 'Trying to eat empty node', position );
+        }
     }
 
     addAntInternal( scene ){
@@ -255,8 +284,18 @@ class Ants extends SuperModel{
         }
     }
 
-    getPathInfo( point1, point2 ){
+    getPathAmount( point1, point2 ){
+        var keys = this.getPathStrings( point1, point2 );
+        var key1 = keys[0];
+        var key2 = keys[1];
 
+        if ( key1 in this.pathData ){
+            if ( key2 in this.pathData[key1] ){
+                return this.pathData[key1][key2].count;
+            }
+        }
+
+        return  0;
 
     }
 
@@ -264,7 +303,7 @@ class Ants extends SuperModel{
         var key = this.getNodeKey( point );
 
         if ( key in this.nodeData ){
-            return this.nodeData[key];
+            return this.nodeData[key].amount;
         } else {
             return 0;
         }
@@ -317,8 +356,6 @@ class Ants extends SuperModel{
     }
 
     antsChooseDirection( ){
-
-
         for ( var i = 0; i < this.ants.length; i++ ){
             var ant = this.ants[i];
 
@@ -331,11 +368,12 @@ class Ants extends SuperModel{
 
 
             var validDirections = [];
-
+            var directionWeights = [];
             ant.direction.set( 0, 0, 0 );
 
             // check if food is in any direction
             var dirToFoodFound = false;
+            var totalWeight = 0;
 
             // assemble valid movement options
             for ( var x = -1; x <= 1; x++ ){
@@ -359,16 +397,20 @@ class Ants extends SuperModel{
                         var potentialNewDirection = new THREE.Vector3( x, y, z );
                         var potentialSpot = ant.position.clone().add( potentialNewDirection );
 
-                        if( potentialSpot.equals( ant.previousPosition ) ){
+                        if( potentialSpot.equals( ant.previousPosition ) ){ // don't go back to previous position
                             continue;
                         }
 
-                        if ( this.getNodeFoodCount( potentialSpot ) > 0 ){
+                        if ( this.getNodeFoodCount( potentialSpot ) > 0 ){ // go towards seen food
                             ant.direction.copy( potentialNewDirection );
                             dirToFoodFound = true;
                             break;
                         }
 
+                        // calc weight based on pheromone presence
+                        var weightValue = 1.0 + this.getPathAmount( ant.position, potentialSpot ) * this.pheremoneWeight;// + some function of pheremones
+                        totalWeight += weightValue
+                        directionWeights.push( totalWeight ) // + some function
                         validDirections.push( potentialNewDirection );
                     }
 
@@ -382,9 +424,18 @@ class Ants extends SuperModel{
             }
 
             if ( dirToFoodFound === false ){
-                // pick random integer between 0 and length
-                var randomIndex = Math.floor( Math.random() * validDirections.length );
-                ant.direction.copy( validDirections[randomIndex] );                
+                // pick random number to infer from list of directions
+                var randomWeight = Math.floor( Math.random() * totalWeight );
+                var chosenIndex = validDirections.length - 1;
+
+                for ( var j = 0; j < validDirections.length; j++){
+                    if ( randomWeight < directionWeights[j] ){
+                        chosenIndex = j;
+                        break;
+                    }
+                }
+                // var randomIndex = Math.floor( Math.random() * validDirections.length );
+                ant.direction.copy( validDirections[chosenIndex] );                
             }
 
         }
