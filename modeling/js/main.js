@@ -3,6 +3,7 @@ var scene, camera, renderer, controls, clock;
 
 var modelDictionary = {
     "Empty"                   : Empty,
+    "Ants"                    : Ants,
     "Evolutionary Strategies" : ES,
     "Inverse Kinematics"      : IK,
     "ODE Solvers"             : ODEDemo,
