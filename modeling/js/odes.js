@@ -1,76 +1,40 @@
 
-class ForwardEuler{
-    constructor( demo, gui ){
-        this.color = 0xff0000;
-        this.material = new THREE.LineBasicMaterial( { color: this.color } );
-        gui.addColor( this, 'color' )
-                .onChange( ( value ) => this.material.color.setHex( value ) );
-        this.z = 0.0;
-        gui.add( this, 'z' ).min(-0.1).max(0.1).step(0.01)
-                .onChange( ( e ) => demo.modelShouldUpdate = true );
-    }
+class ODESolvers{
 
-    integrate( f, ts, y0 = 0 ){
-        var ys = [];
+    static eulerStep( f, t, h, yInits ){
+        // take single step
+        if ( Array.isArray( yInits ) ){
+            var outYs = [];
 
-        ys.push( y0 );
-
-        for ( var i = 1; i < ts.length; i++ ){
-            const tPrev = ts[i-1];
-            const yPrev = ys[i-1];
-            const dt = ts[i] - tPrev;
-            const funcEval = f.eval( { t : tPrev, y : yPrev } );
-            ys.push( yPrev + dt * funcEval );
+            for ( var i = 0; i < yInits.length; i++ ){
+                var y = yInits[i];
+                y = y + f( t, y ) * h;
+                outYs.push( y );
+            }
+            return outYs;
+        } else {
+            return yInits + f( t, yInits ) * h;
         }
-        return ys;        
-    }
-}
-
-class RK4{
-    constructor( demo, gui ){
-        this.color = 0x0000ff;
-        this.material = new THREE.LineBasicMaterial( { color: this.color } );
-        gui.addColor( this, 'color' )
-                .onChange( ( value ) => this.material.color.setHex( value ) );
-
-        this.c1 = 0;
-        this.c2 = 0.5;
-        this.c3 = 0.5;
-        this.c4 = 1.0;
-
-        this.b1 = 1 / 6.0;
-        this.b2 = 1 / 3.0;
-        this.b3 = 1 / 3.0;
-        this.b4 = 1 / 6.0;
-
-        this.a21 = 0.5;
-        this.a31 = 0.0;
-        this.a32 = 0.5;
-        this.a41 = 0.0;
-        this.a42 = 0.0;
-        this.a43 = 1.0;
-
-        this.z = 0.0;
-        gui.add( this, 'z' ).min(-0.1).max(0.1).step(0.01)
-                .onChange( ( e ) => demo.modelShouldUpdate = true );
     }
 
-    integrate( f, ts, y0 = 0 ){
+    static euler( f, t0, tf, h, y0s = 0){
+        // run euler integration over the time range ts
         var ys = [];
-        ys.push( y0 );
+        ys.push( y0s );
 
-        for( var i = 1; i < ts.length; i++ ){
-            var dt = ts[i] - ts[i - 1];
-            var k1 = dt * f.eval( { t : ts[i - 1], y : ys[i - 1] } );
-            var k2 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k1 / 2.0 } );
-            var k3 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k2 / 2.0 } );
-            var k4 = dt * f.eval( { t : ts[i - 1] + dt, y : ys[i - 1] + k3 } );
-
-
-            ys.push( ys[i - 1] + ( 1 / 6.0 ) * ( k1 + 2 * k2 + 2 * k3 + k4 ) );
+        for ( var t = t0 + h; t <= tf; t += h){
+            ys.push ( ODESolvers.eulerStep( f, t, h, ys[i] ) );
         }
 
         return ys;
+    }
+
+    static rk( f, ts, y0s = 0, order = 4 ){
+
+    }
+
+    static adamsBashforth( f, ts, y0s = 0 ){
+
     }
 }
 
@@ -89,7 +53,7 @@ class ODEDemo extends SuperModel{
         this.tStart = -5.0;
         this.tEnd = 5.0;
 
-        this.dt = 0.1;
+        this.h = 0.1;
         this.y0 = 0;
 
         // must go before update
@@ -99,9 +63,11 @@ class ODEDemo extends SuperModel{
 
         this.modelShouldUpdate = true;
 
+        this.normalizeSlopes = true;
+        this.colorSlopes = true;
+
         this.gui.add( this, 'yPrime' ).onFinishChange( ( e ) => { this.code = math.parse( e ).compile();
                                                                   this.modelShouldUpdate = true } );
-
         this.gui.add( this, 'tStart' )
                 .min( -5.0 ).max( 0.0 ).step( 0.01 )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
@@ -114,23 +80,31 @@ class ODEDemo extends SuperModel{
                 .max( 5.0)
                 .step( 0.1 )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
-         
-        this.gui.add( this, 'dt' )
-                .min( 0.001 )
+        
+        this.minH = 0.005;
+
+        this.gui.add( this, 'h' )
+                .min( this.minH )
                 .max( 1.0 )
                 .step( 0.001 )
                 .onChange( ( e ) => this.modelShouldUpdate = true );
+
+        this.gui.add( this, 'normalizeSlopes' ).onChange( ( e ) => this.modelShouldUpdate = true );
+        this.gui.add( this, 'colorSlopes' ).onChange( ( e ) => this.modelShouldUpdate = true );
 
         this.integratorFolder = this.gui.addFolder( 'Integrators' );
 
         this.integrators = [];
         // add euler integrator
-        this.eulerFolder = this.integratorFolder.addFolder( 'Forward Euler' );
-        this.integrators.push( new ForwardEuler( this, this.eulerFolder ) );
+        // this.eulerFolder = this.integratorFolder.addFolder( 'Forward Euler' );
+        // this.integrators.push( new ForwardEuler( this, this.eulerFolder ) );
 
-        this.rk4Folder = this.integratorFolder.addFolder( 'RK-4' );
-        this.integrators.push( new RK4( this, this.rk4Folder ) );
+        // this.rk4Folder = this.integratorFolder.addFolder( 'RK-4' );
+        // this.integrators.push( new RK4( this, this.rk4Folder ) );
+        this.lineMaterial = new THREE.LineBasicMaterial( { color : 0x00000 } );
+        this.lineGeometetry = new THREE.Geometry();
 
+        this.eulerLineMesh = 
         this.arrowMeshes = [];
         // create arrow helpers
         for ( var i = -5; i <= 5; i += 0.5 ){
@@ -151,6 +125,7 @@ class ODEDemo extends SuperModel{
         }
 
         this.lineMeshes = [];
+
     }
 
     animate( scene, camera, timeStep ){
@@ -158,48 +133,16 @@ class ODEDemo extends SuperModel{
             this.udpateModel( scene );
             this.modelShouldUpdate = false;
         }
-
     }
         
     udpateModel( scene ){
+        
         // draw real function
-
-        // var currentFunction = this.code;
-
-        // var currentFunction = this.functionDict[this.function];
-        // clear scene
         for( var i = 0; i < this.sceneMeshes.length; i++ ){
             scene.remove( this.lineMeshes[i] );
         }
 
-        var ts = [];
-        for ( var t = this.tStart; t <= this.tEnd; t+= this.dt ){
-            ts.push( t );
-        }
-
-        for ( var i = 0; i < this.integrators.length; i++ ){
-            var integrator = this.integrators[i];
-            var ys = integrator.integrate( this.code, ts, this.y0, this.scaleFunction );
-
-            // if ( this.scaleFunction ){
-            //     minY = Math.min( ...ys );
-            //     maxY = Math.max( ...ys );
-            //      // scale input
-            //     for ( var j = 0; j < ys.length; j++ ){
-            //         ys[j] = ( ys[j] - minY ) / ( maxY - minY ) * ( this.tEnd - this.tStart ) + this.tStart;
-            //     }
-            // }
-
-            var geometry = new THREE.Geometry();
-            // var material = new THREE.LineBasicMaterial( { color: 0xfff000 } );
-
-            for ( var j = 0; j < ys.length; j++ ){
-                geometry.vertices.push( new THREE.Vector3( ts[j], ys[j], this.integrators[i].z ) );
-            }
-            var line = new THREE.Line( geometry, integrator.material );
-            this.addMesh( scene, line );
-            this.lineMeshes.push( line );
-        }
+        var slopeLengths = [];
 
         var index = 0;
         for ( var t = -5; t <= 5; t += 0.5 ){
@@ -207,14 +150,41 @@ class ODEDemo extends SuperModel{
             var yEnd = 5
             var yStep = ( yEnd - yStart ) / 20.0;
             for ( var y = yStart; y <= yEnd; y += yStep ){
-                // if ( this.scaleFunction ){
+
                 var sample = this.code.eval( { t : t, y : y } );
                 // var sample = currentFunction( t, y );
-                var dir = new THREE.Vector3( 1, sample, 0 ); 
+                var dir = new THREE.Vector3( 1, sample, 0 );
+                var length = dir.length();
+                slopeLengths.push( length );
+
                 dir.normalize();
-                // }
+
                 this.arrowMeshes[index].setDirection( dir );
+                if ( this.normalizeSlopes ){
+                    this.arrowMeshes[index].setLength( 0.3, 0.2, 0.1 );
+                } else {
+                    var arrSize = 0.5
+                    this.arrowMeshes[index].setLength( length * arrSize,
+                                                       Math.min( length * 0.2, 0.2 ),
+                                                       Math.min( length * 0.1, 0.1 ) );
+                }
                 index += 1;
+            }
+        }
+
+        var maxLength = Math.max( ...slopeLengths );
+        maxLength += maxLength * 0.01;
+
+        var maxColor = new THREE.Color( 0xaa0000 );
+
+        for ( var i = 0; i < this.arrowMeshes.length; i++ ){
+            if ( this.colorSlopes ){
+                var arrowColor = new THREE.Color( 0x0000aa );
+                arrowColor.lerpHSL( maxColor, slopeLengths[i] / maxLength );
+
+                this.arrowMeshes[i].setColor( arrowColor );
+            } else {
+                this.arrowMeshes[i].setColor( new THREE.Color( 0x555555 ) );
             }
         }
     }
