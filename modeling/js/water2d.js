@@ -110,7 +110,7 @@ class Water2D extends SuperModel{
 
         for ( var i = 0; i < this.n; i++ ){
             var xDiff = this.positions[ 1 + i * 3 ] - this.height;
-            var acc = -this.k * xDiff * dt * dt - this.damping * this.velocities[i];
+            var acc = -this.k * xDiff * dt - this.damping * this.velocities[i];
 
             this.positions[ 1 + i * 3 ] += this.velocities[i] * dt;
             this.velocities[i] += acc;

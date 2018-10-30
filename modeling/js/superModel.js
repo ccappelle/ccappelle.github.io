@@ -8,6 +8,8 @@ class SuperModel {
         this.pause = false;
         this.mouseX = 0;
         this.mouseY = 0;
+
+        this.pause = false;
     }
 
     destroy( scene ){
@@ -23,6 +25,24 @@ class SuperModel {
         this.sceneMeshes.push( mesh );
     }
 
+    removeMesh( scene, mesh ){
+        var indices = [];
+
+        for ( var i = 0; i < this.sceneMeshes.length; i++ ){
+            if ( this.sceneMeshes[i] == mesh ){
+                indices.push( i );
+                scene.remove( this.sceneMeshes[i] );
+            }
+        }
+
+        for ( var i = 0; i < indices.length; i++ ){
+            this.sceneMeshes.splice( indices[i] - i, 1);
+        }
+
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+        mesh = undefined;
+    }
     animate( scene, camera, dt ){
 
     }
