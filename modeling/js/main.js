@@ -1,30 +1,6 @@
 var currentModel;
 var scene, camera, renderer, controls, clock;
 
-var modelDictionary = {
-    "Empty"                   : Empty,
-    "Evolutionary Strategies" : ES,
-    "Inverse Kinematics"      : IK,
-    "ODE Solvers"             : ODEDemo,
-    // "Empty"           : Empty,
-    // "Game of Life"    : GameOfLife,
-    "Inverse Kinematics" : IK,
-    "L-systems"       : Lsystem,
-    // "3D Model Viewer" : Viewer,
-    // "NBody 2D"                : NBody2D,
-    // "Water 2D"                : Water2D
-}
-
-// create selector
-var modelSelector = document.getElementById( "model-selector" );
-modelSelector.addEventListener( "change", changeModel );
-
-for (const [key, value] of Object.entries( modelDictionary ) ) {
-    var modelOption = document.createElement( "option" );
-    modelOption.value = key;
-    modelOption.text = key;
-    modelSelector.appendChild( modelOption );
-}
 
 var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
@@ -78,33 +54,28 @@ function run(){
 }
 
 function updateModel( newModelName ){
-    if ( currentModel instanceof SuperModel ){
-        currentModel.destroy( scene );
-    }
 
-    if ( newModelName in modelDictionary ){
-        currentModel = new modelDictionary[newModelName]( scene );
-        instructionDiv = document.getElementById( 'instruction-div' );
-        instructionDiv.innerHTML = "<p>" + currentModel.instructionString
-                                  + "</p> " + linkString;
-        var modalDiv = document.getElementById( 'modal-content' );
-        modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
-        document.getElementById( 'model-div' ).innerHTML = '';
-    } else {
-        console.log( "Model not in dictionary" );
-    }
-    
-}
+    if ( newModelName != currentModelName ){
+        currentModelName = newModelName;
 
-function onMouseClick( event ){
-    if ( event.target == document.getElementById( 'modal' ) ){
-        document.getElementById( 'modal' ).style.display = "none";
+        if ( currentModel instanceof SuperModel ){
+            currentModel.destroy( scene );
+        }
+
+        if ( newModelName in modelDictionary ){
+            currentModel = new modelDictionary[newModelName]( scene );
+            instructionDiv = document.getElementById( 'instruction-div' );
+            instructionDiv.innerHTML = "<p>" + currentModel.instructionString
+                                      + "</p> " + linkString;
+            var modalDiv = document.getElementById( 'modal-content' );
+            modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
+            document.getElementById( 'model-div' ).innerHTML = '';
+        } else {
+            console.log( "Model not in dictionary" );
+        }
     }
 }
 
-function openModal(){
-    document.getElementById( 'modal' ).style.display = 'block';
-}
 scene = new THREE.Scene();
 // fov, aspect ratio, near clip, far clip
 camera = new THREE.PerspectiveCamera( 75,
@@ -130,5 +101,7 @@ clock = new THREE.Clock();
 
 addGround();
 addLights();
+
+currentModelName = ''
 updateModel( "Empty" );
 run();

@@ -5,6 +5,7 @@
         <meta charset=utf-8>
         <link rel="icon" type="image/png" href="../img/icon.png?">
         <title>Simple Models</title>
+        <!-- <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"> -->
         <style>
             body {
                 margin: 0; 
@@ -42,31 +43,91 @@
             }
             .instruction-div{
                 max-width: 350px;
+                min-width: 300px;
                 height: 150px;
                 margin: auto;
                 background-color: rgba( 200, 200, 200, 0.75 );
                 padding: 5px;
                 position: absolute;
-                left: 70%;
                 right: 1%;
                 bottom: 10px;
+                overflow-x:hidden;
+                overflow-y:auto;
+                box-shadow:0 0px 16px 0 rgba(10, 10, 10,0.5)
+            }
+            .my-sidebar{
+                height:100%;
+                width:200px;
+                background-color: rgba( 200, 200, 200, 0.75 );
+                position:fixed!important;
+                z-index:1;
+                overflow-x:hidden;
+                overflow-y:auto;
+                box-shadow:0 0px 16px 0 rgba(10, 10, 10,0.5)
+            }
+            .sidebar-entry{
+                padding: 5px 5px;
+                display:inline-block;
+                width:100%;
+                background-color: rgba( 0, 0, 0, 0);
+                font-family: Arial;
+                font-size: 15px;
+                color: #ffffff;
+            }
+            .sidebar-entry:hover{
+                background-color: rgba( 250, 250, 250, .7);
+            }
+
+            a:link, a:visited, a:hover, a:active{
+                text-decoration: none;
+                color: inherit;
+            }
+
+            .button{
+                border:0px;
+                padding:15px 15px;
+                vertical-align:middle;
+                text-decoration:none;
+                background-color: inherit;
+                cursor:pointer;
+                color: inherit;
+            }
+            .button:hover{
+                background-color:#222;
+                color: white; 
             }
         </style>
     </head>
     <body >
-        <div class="clear-div" id="selector-div"><select id="model-selector"></select></div>
-        <div class="model-div" id="model-div"></div>
-        <div class="instruction-div" id="instruction-div"></div>
-
-        <div class="modal" id="modal">
-            <div class="modal-content" id="modal-content">
-                <p> Work in progress </p>
+        <div class="my-sidebar" style="display:block" id="sidebar">
+            <div style="display: inline-block; width: 100%; background-color: #444; font-family: Arial; font-size: 20px; color: white; padding: 0px 0px">
+<!--                     <span style="display:inline; width:75%; float: left;"> <h4> Demo Options: </h4></span>
+                <span style="display: inline; width: 25%">
+                <button class="button" style="display:inline; width:25%; float: right; font-size: 40px" onclick="closeSidebar()"> &times; </button> </span> -->
+                <h4 style="position: relative; left: 3px; float:left; display: inline; padding: 0px 0px"> Demo Options: </h4>
+                <button class="button" style="float: right; font-weight: 900; font-size:20px; padding: 27px 15px" onclick="closeSidebar()"> &times; </button>
             </div>
+
         </div>
 
-        <div id="varying"></div>
+        <div id="main-canvas" style="width:100%; height:100%">
+            <div style="position: absolute; background-color: rgba(0, 0, 0, 0)">
+                <button id="sidebar-button"
+                        onclick="openSidebar()"
+                        style="background-color: rgba(0, 0, 0, 0); font-size:30px">☰</button>
+            </div>
 
+            <div class="model-div" id="model-div"></div>
+            <div class="instruction-div" id="instruction-div"></div>
 
+            <div class="modal" id="modal">
+                <div class="modal-content" id="modal-content">
+                    <p> Work in progress </p>
+                </div>
+            </div>
+
+            <div id="varying"></div>
+        </div>
 
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
         <script src="js/three.js"></script>
@@ -81,46 +142,73 @@
         <script src="js/nbody2d.js"></script>
         <script src="js/water2d.js"></script>
         <script src="js/odes.js"></script>
-<!--         <script src="js/bufferedGeoms.js"></script>
-        <script src="js/lsystem.js"></script>
-        <script src="js/gol.js"></script>
-        <script src="js/viewer.js"></script>
-        <script src="js/water2d.js"></script>
- -->
 
+
+        <script>
+            var modelDictionary = {
+                "Empty"                   : Empty,
+                "Evolutionary Strategies" : ES,
+                "Inverse Kinematics"      : IK,
+                "ODE Solvers"             : ODEDemo,
+                // "Empty"           : Empty,
+                // "Game of Life"    : GameOfLife,
+                "Inverse Kinematics" : IK,
+                "L-systems"       : Lsystem,
+                // "3D Model Viewer" : Viewer,
+                // "NBody 2D"                : NBody2D,
+                // "Water 2D"                : Water2D
+            }
+
+            // set model options dynamically from available models
+            var modelSidebar = document.getElementById( "sidebar" );
+            for (const [key, value] of Object.entries( modelDictionary ) ) {
+                var modelOption = document.createElement( "a" );
+                modelOption.value = key;
+
+                modelOption.text = '○ ' + key;
+                // modelOption.text = '<h4> ○ ' + key + '</h4>';
+                modelOption.setAttribute( 'href', '#' );
+                modelOption.onclick = ( e ) => updateModel( key );
+                modelOption.setAttribute( 'class', 'my-link sidebar-entry' );
+                modelOption.setAttribute( 'style', 'color: #444; ' );
+                modelSidebar.appendChild( modelOption );
+            }
+
+            function openSidebar(){
+                document.getElementById( "sidebar" ).style.display = 'block';
+            }
+
+            function closeSidebar(){
+                document.getElementById( 'sidebar' ).style.display = 'none';
+            }
+
+            function openModal(){
+                document.getElementById( 'modal' ).style.display = 'block';
+                closeSidebar();
+                dat.GUI.toggleHide();
+            }
+
+            function closeModal(){
+                document.getElementById( 'modal' ).style.display = "none";
+                dat.GUI.toggleHide();
+            }
+            function onMouseClick( event ){
+                if ( event.target == document.getElementById( 'modal' ) ){
+                    closeModal();
+                } 
+
+                // if ( event.target.tagName == 'CANVAS' ){
+                //     const element = document.getElementById( 'sidebar' );
+                //     style = window.getComputedStyle( element );
+                //     if ( style.getPropertyValue( 'display' ) !== 'none' ){
+                //         closeSidebar();
+                //     }
+                    
+                // }
+
+            }
+        </script>
         <script src="js/main.js"></script>
 
-<!--         <div style="position: absolute; left: 5px; right: 20%; top: 5px;
-            background-color: rgba(0, 0, 0, 0);"
-            id = "special"></div>
 
-        <div style="position: absolute; left: 70%;
-                    right: 1%; bottom: 10px;
-                    padding: 10px;
-                    background-color: rgba(200, 200, 200, 0.5);"
-                    id="instructions">
-        </div>
-
-        <select id="modelDropdown" type="text">
-            <option value="empty">Empty</option>
-            <option value="ik2d">2D Inverse Kinematics</option>
-            <option value="lsystem">L-System Viewer</option>
-            <option value="gol">Game of Life</option>
-            <option value="viewer">3D Model Viewer</option>
-            <option value="water2d">2D Spring Water Model</option>
-        </select>
-        <button id="resubmit">Resubmit</button>
-
-        <script type="text/javascript" src="js/dat.gui.min.js"></script>
-        <script src="js/three.js"></script>
-        <script src="js/OrbitControls.js"></script>
-
-        <script src="js/bufferedGeoms.js"></script>
-        <script src="js/ik2d.js"></script>
-        <script src="js/lsystem.js"></script>
-        <script src="js/gol.js"></script>
-        <script src="js/viewer.js"></script>
-        <script src="js/water2d.js"></script>
-
-        <script src="js/main.js"></script> -->
     </body>
