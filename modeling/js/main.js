@@ -84,7 +84,7 @@ camera = new THREE.PerspectiveCamera( 75,
                                       1000 );
 camera.position.set( 8, 0, 15 );
 
-renderer = new THREE.WebGLRenderer( { antialias: true} );
+renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setClearColor( "#f0f0f0" );
 renderer.setSize( window.innerWidth,
                   window.innerHeight );

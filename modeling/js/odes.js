@@ -1,76 +1,108 @@
 
-class ForwardEuler{
-    constructor( demo, gui ){
-        this.color = 0xff0000;
-        this.material = new THREE.LineBasicMaterial( { color: this.color } );
-        gui.addColor( this, 'color' )
-                .onChange( ( value ) => this.material.color.setHex( value ) );
-        this.z = 0.0;
-        gui.add( this, 'z' ).min(-0.1).max(0.1).step(0.01)
-                .onChange( ( e ) => demo.modelShouldUpdate = true );
-    }
+var ARROW_VERTEX_SHADER = `
+    precision highp float;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform bool shouldNormalize;
+    uniform float scale;
+    uniform bool useColor;
+    uniform float arrowAlpha;
 
-    integrate( f, ts, y0 = 0 ){
-        var ys = [];
+    attribute vec3 position;
+    attribute vec3 offset;
+    attribute vec3 direction;
+    attribute vec3 color;
 
-        ys.push( y0 );
+    vec4 vPosition;
 
-        for ( var i = 1; i < ts.length; i++ ){
-            const tPrev = ts[i-1];
-            const yPrev = ys[i-1];
-            const dt = ts[i] - tPrev;
-            const funcEval = f.eval( { t : tPrev, y : yPrev } );
-            ys.push( yPrev + dt * funcEval );
-        }
-        return ys;        
-    }
-}
+    varying vec4 vColor;
 
-class RK4{
-    constructor( demo, gui ){
-        this.color = 0x0000ff;
-        this.material = new THREE.LineBasicMaterial( { color: this.color } );
-        gui.addColor( this, 'color' )
-                .onChange( ( value ) => this.material.color.setHex( value ) );
+    void main(){
+        vPosition = vec4( position.x, position.y, position.z, 1.0 );
 
-        this.c1 = 0;
-        this.c2 = 0.5;
-        this.c3 = 0.5;
-        this.c4 = 1.0;
+        vec3 scaleVector = vec3( scale );
 
-        this.b1 = 1 / 6.0;
-        this.b2 = 1 / 3.0;
-        this.b3 = 1 / 3.0;
-        this.b4 = 1 / 6.0;
-
-        this.a21 = 0.5;
-        this.a31 = 0.0;
-        this.a32 = 0.5;
-        this.a41 = 0.0;
-        this.a42 = 0.0;
-        this.a43 = 1.0;
-
-        this.z = 0.0;
-        gui.add( this, 'z' ).min(-0.1).max(0.1).step(0.01)
-                .onChange( ( e ) => demo.modelShouldUpdate = true );
-    }
-
-    integrate( f, ts, y0 = 0 ){
-        var ys = [];
-        ys.push( y0 );
-
-        for( var i = 1; i < ts.length; i++ ){
-            var dt = ts[i] - ts[i - 1];
-            var k1 = dt * f.eval( { t : ts[i - 1], y : ys[i - 1] } );
-            var k2 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k1 / 2.0 } );
-            var k3 = dt * f.eval( { t : ts[i - 1] + dt / 2, y : ys[i - 1] + k2 / 2.0 } );
-            var k4 = dt * f.eval( { t : ts[i - 1] + dt, y : ys[i - 1] + k3 } );
+        float angle = atan( direction.y, direction.x );
+        float directionLength = length( direction );
 
 
-            ys.push( ys[i - 1] + ( 1 / 6.0 ) * ( k1 + 2 * k2 + 2 * k3 + k4 ) );
+        if ( shouldNormalize == false ){
+            scaleVector.x = scaleVector.x * directionLength;
         }
 
-        return ys;
+        mat4 S = mat4( scaleVector.x, 0.0, 0.0, 0.0,
+                       0.0, scaleVector.y, 0.0, 0.0,
+                       0.0, 0.0, scaleVector.z, 0.0,
+                       0.0, 0.0, 0.0,   1.0 );
+
+        mat4 R = mat4(  cos( angle ), sin( angle ), 0.0, 0.0,
+                        - sin( angle ),  cos( angle ), 0.0, 0.0,
+                        0.0,          0.0          , 1.0, 0.0,
+                        0.0,          0.0          , 0.0, 1.0 );
+
+
+        vPosition = vec4( offset.x, offset.y, offset.z, 0.0 ) + R * S * vPosition;
+        if ( useColor == true ){
+            vColor = vec4( color, arrowAlpha );
+        } else {
+            vColor = vec4( 0.5, 0.5, 0.5, arrowAlpha);
+        }
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    }
+`
+
+var ARROW_FRAGMENT_SHADER = `
+    precision highp float;
+    varying vec4 vColor;
+    // varying vec4 vPosition;
+
+    void main(){
+        gl_FragColor = vColor;
+    }
+`
+
+class ODESolvers{
+
+    static eulerStep( f, t, h, yInits ){
+        // take single step
+        if ( Array.isArray( yInits ) ){
+            var outYs = [];
+
+            for ( var i = 0; i < yInits.length; i++ ){
+                var y = yInits[i];
+                y = y + f.eval( { t: t, y: y } ) * h;
+                outYs.push( y );
+            }
+            return outYs;
+        } else {
+            return yInits + f.eval( { t: t, y: yInits } ) * h;
+        }
+    }
+
+    static euler( f, t0, tf, h, y0s = 0){
+        // run euler integration over the time range ts
+        var ys = [];
+        var ts = [];
+        ys.push( y0s );
+
+        var i = 0;
+        ts.push( t0 );
+        for ( var t = t0 + h; t <= tf; t += h){
+            ys.push ( ODESolvers.eulerStep( f, t, h, ys[i] ) );
+            ts.push( t );
+            i ++;
+        }
+
+        return [ ys, ts ];
+    }
+
+    static rk( f, ts, y0s = 0, order = 4 ){
+
+    }
+
+    static adamsBashforth( f, ts, y0s = 0 ){
+
     }
 }
 
@@ -89,8 +121,11 @@ class ODEDemo extends SuperModel{
         this.tStart = -5.0;
         this.tEnd = 5.0;
 
-        this.dt = 0.1;
+        this.h = 0.1;
         this.y0 = 0;
+
+        this.minColor = 0x6495ED;
+        this.maxColor = 0xd93e3e;
 
         // must go before update
         var grid = new THREE.GridHelper( 10, 10 );
@@ -98,124 +133,258 @@ class ODEDemo extends SuperModel{
         this.addMesh( scene, grid );
 
         this.modelShouldUpdate = true;
+        this.slopesShouldUpdate = true;
+
+        this.normalizeSlopes = true;
+        this.colorSlopes = true;
+
+        this.functionShouldUpdate = true;
 
         this.gui.add( this, 'yPrime' ).onFinishChange( ( e ) => { this.code = math.parse( e ).compile();
-                                                                  this.modelShouldUpdate = true } );
-
+                                                                  this.functionShouldUpdate = true;
+                                                                  this.slopesShouldUpdate = true; } );
         this.gui.add( this, 'tStart' )
                 .min( -5.0 ).max( 0.0 ).step( 0.01 )
-                .onChange( ( e ) => this.modelShouldUpdate = true );
+                .onChange( ( e ) => { this.functionShouldUpdate = true;
+                                     this.lineGeometry.setDrawRange( 0, Math.floor( ( 1 / this.h ) * ( this.tEnd - this.tStart) ) + 1 );
+                } );
 
         this.gui.add( this, 'tEnd' )
                 .min( 0.0 ).max( 5.0 ).step( 0.01 )
-                .onChange( ( e ) => this.modelShouldUpdate = true );
+                .onChange( ( e ) => { this.functionShouldUpdate = true;
+                                     this.lineGeometry.setDrawRange( 0, Math.floor( ( 1 / this.h ) * ( this.tEnd - this.tStart) ) + 1 );
+                } );
+
         this.gui.add( this, 'y0' )
                 .min( -5.0 )
                 .max( 5.0)
                 .step( 0.1 )
-                .onChange( ( e ) => this.modelShouldUpdate = true );
-         
-        this.gui.add( this, 'dt' )
-                .min( 0.001 )
+                .onChange( ( e ) => this.functionShouldUpdate = true );
+        
+        this.minH = 0.005;
+
+        this.gui.add( this, 'h' )
+                .min( this.minH )
                 .max( 1.0 )
                 .step( 0.001 )
-                .onChange( ( e ) => this.modelShouldUpdate = true );
+                .onChange( ( e ) => { this.functionShouldUpdate = true;
+                                     this.lineGeometry.setDrawRange( 0, Math.floor( ( 1 / this.h ) * ( this.tEnd - this.tStart) ) + 1);
+                } );
+
+
+        this.arrowAlpha = 1.0;
+
+        this.arrowFolder = this.gui.addFolder( 'Slope Field Options' );
+
+
+
+
 
         this.integratorFolder = this.gui.addFolder( 'Integrators' );
 
         this.integrators = [];
-        // add euler integrator
-        this.eulerFolder = this.integratorFolder.addFolder( 'Forward Euler' );
-        this.integrators.push( new ForwardEuler( this, this.eulerFolder ) );
 
-        this.rk4Folder = this.integratorFolder.addFolder( 'RK-4' );
-        this.integrators.push( new RK4( this, this.rk4Folder ) );
+        this.lineMaterial = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+        this.lineGeometry = new THREE.BufferGeometry();
 
-        this.arrowMeshes = [];
-        // create arrow helpers
-        for ( var i = -5; i <= 5; i += 0.5 ){
-            for ( var j = -5; j <=5; j += 0.5 ){
-                var dir = new THREE.Vector3( 1, 1, 0 );
-                dir.normalize();
-                var pos = new THREE.Vector3( i, j, 0 );
-                var arrow = new THREE.ArrowHelper( 
-                                dir, pos,
-                                0.3, 0x555555,
-                                0.2, 0.1
-                             );
-                this.addMesh( scene, arrow );
-                this.arrowMeshes.push( 
-                        arrow  
-                    );
+        this.maxLinePoints = 10 * ( 1 / this.minH );
+        this.linePointsArray = new Float32Array( this.maxLinePoints * 3 );
+
+        for ( var i = 0; i < this.maxLinePoints; i++ ){
+            this.linePointsArray[ 3 * i + 0 ] = - 5.0 + i * this.h;
+            this.linePointsArray[ 3 * i + 1 ] = 2.0;
+            this.linePointsArray[ 3 * i + 2 ] = 0.0;
+        }
+        this.lineGeometry.addAttribute( 'position', new THREE.BufferAttribute( this.linePointsArray, 3 ) );
+
+
+        console.log( this.maxLinePoints / 3.0 );
+
+        this.lineMesh = new THREE.Line( this.lineGeometry, this.lineMaterial );
+        this.addMesh( scene, this.lineMesh );
+
+        this.createSlopeField();
+
+        this.lineMeshes = [];
+        this.time = 0;
+
+        this.arrowFolder.add( this, 'normalizeSlopes' )
+                        .onChange( ( value ) => this.arrowInstanceMesh.material.uniforms.shouldNormalize.value = value);
+        this.arrowFolder.add( this, 'colorSlopes' )
+                        .onChange( ( value ) => this.arrowInstanceMesh.material.uniforms.useColor.value = value);
+        this.arrowFolder.add( this, 'arrowAlpha' )
+                        .min( 0 )
+                        .max( 1.0 )
+                        .step( 0.1 )
+                        .onChange( ( value ) => { this.arrowInstanceMesh.material.uniforms.arrowAlpha.value = value 
+                            if ( value == 0 ){
+                                this.arrowInstanceMesh.material.visible = false;
+                            } else {
+                                this.arrowInstanceMesh.material.visible = true;
+                            }
+                        } );
+        this.arrowFolder.addColor( this, 'minColor' ).onChange( ( e ) => this.slopesShouldUpdate = true )
+
+        this.arrowFolder.addColor( this, 'maxColor' ).onChange( ( e ) => this.slopesShouldUpdate = true );
+        this.lineGeometry.setDrawRange( 0, Math.floor( ( 1 / this.h ) * ( this.tEnd - this.tStart) ) + 1 )
+    }
+
+    animate( scene, camera, dt ){
+
+        if ( this.slopesShouldUpdate || this.functionShouldUpdate ){
+            this.updateModel( scene, this.slopesShouldUpdate );
+            this.slopesShouldUpdate = false;
+            this.functionShouldUpdate = false;
+        }
+    }
+
+    createSlopeField(){
+        var arrowGeom = this.getArrowGeometry();
+        this.arrowInstance = new THREE.InstancedBufferGeometry();
+
+        this.arrowInstance.index = arrowGeom.index;
+        this.arrowInstance.attributes.position = arrowGeom.attributes.position;
+
+        this.N_INSTANCES = 21 * 21 * 3;
+        this.arrowPositions = new Float32Array( this.N_INSTANCES );
+        this.directionVectors = new Float32Array( this.N_INSTANCES );
+        this.colorVectors = new Float32Array( 21 * 21 * 4 );
+
+
+        var count = 0;
+        var count2 = 0;
+        for ( var x = -5; x <= 5; x += 0.5 ){
+            for ( var y = -5; y <= 5; y += 0.5 ){
+                this.colorVectors[count] = 0.0;
+                this.directionVectors[count] = 1.0;
+                this.arrowPositions[ count++ ] = x;
+
+                this.colorVectors[count] = 0.0;
+                this.directionVectors[count] = 0.0;
+                this.arrowPositions[ count++ ] = y;
+
+                this.colorVectors[count] = 0.0;
+                this.directionVectors[count] = 0.0;
+                this.arrowPositions[ count++ ] = 0;
             }
         }
 
-        this.lineMeshes = [];
-    }
+        this.arrowInstance.addAttribute( 'offset', new THREE.InstancedBufferAttribute( this.arrowPositions, 3 ) );
+        this.arrowInstance.addAttribute( 'direction', new THREE.InstancedBufferAttribute( this.directionVectors, 3 ) );
+        this.arrowInstance.addAttribute( 'color', new THREE.InstancedBufferAttribute( this.colorVectors, 3 ) );
 
-    animate( scene, camera, timeStep ){
-        if ( this.modelShouldUpdate ){
-            this.udpateModel( scene );
-            this.modelShouldUpdate = false;
-        }
+        // this.arrowInstance.addAttribute( 'angle' , new THREE.InstancedBufferAttribute( this.thetaVector, 1 ) );
+        
 
+        var instancedMaterial = new THREE.RawShaderMaterial( {
+            uniforms : { 
+                         shouldNormalize : { value : true },
+                         scale : { value : 0.3 },
+                         useColor : { value : true },
+                         arrowAlpha : { value : this.arrowAlpha },
+                       },
+            vertexShader: ARROW_VERTEX_SHADER,
+            fragmentShader: ARROW_FRAGMENT_SHADER,
+            side : THREE.DoubleSide,
+            transparent : true,
+        });
+
+
+        this.arrowInstanceMesh = new THREE.Mesh( this.arrowInstance, instancedMaterial );
+
+        // this.arrowInstanceMesh.scale.set( 1, 0.1, 0.1 );
+        this.addMesh( scene, this.arrowInstanceMesh );
+    };
+
+    getArrowGeometry( headwidthratio=4.0, headwidth=0.25, headlength=0.4, n = 10 ){
+
+        var bodyToHeadRatio = headwidth / ( 2.0 * headwidthratio );
+
+        var vertices = [  0.0,               bodyToHeadRatio,  0.0,
+                          0.0,              -bodyToHeadRatio,  0.0,
+                          1.0 - headlength, -bodyToHeadRatio,  0.0,
+
+                          0.0,               bodyToHeadRatio, 0.0,
+                          1.0 - headlength, -bodyToHeadRatio, 0.0,
+                          1.0 - headlength,  bodyToHeadRatio, 0.0,
+
+                          1.0 - headlength, -headwidth / 2.0, 0.0,
+                          1.0, 0.0, 0.0,
+                          1.0 - headlength, headwidth / 2.0, 0.0
+                          ];
+
+        var vertsArray = new Float32Array( vertices );
+        var bufferGeometry = new THREE.BufferGeometry();
+
+        bufferGeometry.addAttribute( 'position', new THREE.BufferAttribute( vertsArray, 3) );
+
+        return bufferGeometry;
     }
         
-    udpateModel( scene ){
+    updateModel( scene, both = false ){
+        
         // draw real function
-
-        // var currentFunction = this.code;
-
-        // var currentFunction = this.functionDict[this.function];
-        // clear scene
         for( var i = 0; i < this.sceneMeshes.length; i++ ){
             scene.remove( this.lineMeshes[i] );
         }
 
-        var ts = [];
-        for ( var t = this.tStart; t <= this.tEnd; t+= this.dt ){
-            ts.push( t );
-        }
-
-        for ( var i = 0; i < this.integrators.length; i++ ){
-            var integrator = this.integrators[i];
-            var ys = integrator.integrate( this.code, ts, this.y0, this.scaleFunction );
-
-            // if ( this.scaleFunction ){
-            //     minY = Math.min( ...ys );
-            //     maxY = Math.max( ...ys );
-            //      // scale input
-            //     for ( var j = 0; j < ys.length; j++ ){
-            //         ys[j] = ( ys[j] - minY ) / ( maxY - minY ) * ( this.tEnd - this.tStart ) + this.tStart;
-            //     }
-            // }
-
-            var geometry = new THREE.Geometry();
-            // var material = new THREE.LineBasicMaterial( { color: 0xfff000 } );
-
-            for ( var j = 0; j < ys.length; j++ ){
-                geometry.vertices.push( new THREE.Vector3( ts[j], ys[j], this.integrators[i].z ) );
-            }
-            var line = new THREE.Line( geometry, integrator.material );
-            this.addMesh( scene, line );
-            this.lineMeshes.push( line );
-        }
+        var slopeLengths = [];
 
         var index = 0;
+        var count = 0;
+        var ys, ts;
+        [ ys, ts ] = ODESolvers.euler( this.code, this.tStart, this.tEnd, this.h, this.y0 );
+
+        for ( var i = 0; i < ts.length; i++ ){
+            this.linePointsArray[ i * 3 + 0 ] = ts[i];
+            this.linePointsArray[ i * 3 + 1 ] = ys[i];
+            this.linePointsArray[ i * 3 + 2 ] = 0.0;
+        }
+
+        for ( var i = ts.length; i < this.maxLinePoints; i++ ){
+            this.linePointsArray[ i * 3 + 0 ] = ts[ts.length - 1];
+            this.linePointsArray[ i * 3 + 1 ] = ys[ys.length - 1];
+            this.linePointsArray[ i * 3 + 2 ] = 0;
+        }
+
+        this.lineMesh.geometry.attributes.position.needsUpdate = true;
+
         for ( var t = -5; t <= 5; t += 0.5 ){
             var yStart = -5
             var yEnd = 5
             var yStep = ( yEnd - yStart ) / 20.0;
             for ( var y = yStart; y <= yEnd; y += yStep ){
-                // if ( this.scaleFunction ){
+
                 var sample = this.code.eval( { t : t, y : y } );
                 // var sample = currentFunction( t, y );
-                var dir = new THREE.Vector3( 1, sample, 0 ); 
-                dir.normalize();
-                // }
-                this.arrowMeshes[index].setDirection( dir );
-                index += 1;
+                if ( both ){
+                    var dir = new THREE.Vector3( 1, sample, 0 );
+                    slopeLengths.push( dir.length() );
+
+                    this.directionVectors[ count++ ] = dir.x;
+                    this.directionVectors[ count++ ] = dir.y;
+                    this.directionVectors[ count++ ] = dir.z;
+                }
             }
+        }
+
+        if ( both ){
+            this.arrowInstanceMesh.geometry.attributes.direction.needsUpdate = true;
+
+            var minSlope = Math.min( ...slopeLengths );
+            var maxSlope = Math.max( ...slopeLengths );
+
+            for ( var i = 0; i < slopeLengths.length; i++ ){
+                var alpha = ( slopeLengths[i] - minSlope ) / ( maxSlope - minSlope );
+                var arrowColor = new THREE.Color( this.minColor );
+                arrowColor.lerpHSL( new THREE.Color( this.maxColor ), alpha );
+
+                this.colorVectors[ 3 * i ] = arrowColor.r;
+                this.colorVectors[ 3 * i + 1 ] = arrowColor.g;
+                this.colorVectors[ 3 * i + 2 ] = arrowColor.b;
+            }
+
+            this.arrowInstanceMesh.geometry.attributes.color.needsUpdate = true;
         }
     }
 
