@@ -8,8 +8,11 @@ var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...
 
 function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
+    texture.minFilter = THREE.LinearFilter;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+
+
     texture.repeat.set( 20, 20 );
 
     var planeGeometry = new THREE.PlaneBufferGeometry( 20, 20, 32, 32 );
@@ -45,7 +48,8 @@ function onWindowResize(){
 
 function run(){
     requestAnimationFrame( run );
-    var dt = clock.getDelta();
+    // var dt = clock.getDelta();
+    var dt = 1 / 60.0;
 
     currentModel.animate( scene, camera, dt );
 
