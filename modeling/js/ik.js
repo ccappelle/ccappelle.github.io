@@ -44,9 +44,9 @@ class IK extends SuperModel{
 
 		// add target
 		this.ballPosition = new THREE.Vector3( 5, 0, 0 );
-		this.ballColor = 0x00ff00;
+		this.targetColor = 0x00ff00;
 
-		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.ballColor } );
+		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.targetColor } );
 		var ballGeometry = new THREE.SphereGeometry( 0.3, 32, 32 );
 		this.ballMesh = new THREE.Mesh( ballGeometry, ballMaterial );
 
@@ -71,7 +71,7 @@ class IK extends SuperModel{
 					.max( 5 )
 					.step( 0.1 )
 					.onChange( ( value ) => { this.ballMesh.position.setZ( value ); this.recalcFABRIK = true; } );
-		targetFolder.addColor( this, "ballColor" )
+		targetFolder.addColor( this, "targetColor" )
 					.onChange( ( value ) => { this.ballMesh.material.color.setHex( value ) } );
 
 		this.bones = [];

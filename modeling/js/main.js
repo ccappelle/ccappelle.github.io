@@ -73,6 +73,7 @@ function updateModel( newModelName ){
             var modalDiv = document.getElementById( 'modal-content' );
             modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
             document.getElementById( 'model-div' ).innerHTML = '';
+            document.getElementById( 'model-div' ).style.display = 'none';
         } else {
             console.log( "Model not in dictionary" );
         }
