@@ -25,6 +25,19 @@ class SuperModel {
         this.sceneMeshes.push( mesh );
     }
 
+    removeMeshesBySplice( scene, indexStart, count ){
+        var meshesToRemove = this.sceneMeshes.splice( indexStart, count );
+        for ( var i = 0; i < meshesToRemove.length; i++ ){
+            scene.remove( meshesToRemove[i] );
+            meshesToRemove[i].geometry.dispose();
+            meshesToRemove[i].material.dispose();
+        }
+    }   
+
+    // removeMeshByIndex( scene, index ){
+    //     this.sceneMeshes.splice(index, 1 );
+    // }
+
     removeMesh( scene, mesh ){
         var indices = [];
 
