@@ -1,4 +1,3 @@
-
 class SVD extends SuperModel{
     constructor( scene ){
         super( scene );
@@ -15,7 +14,7 @@ class SVD extends SuperModel{
         this.fileInput.setAttribute( 'name', 'imageUpload' );
         this.fileInput.setAttribute( 'style', 
                                      `position: absolute;
-                                      left: 50%; top: 10%;`);
+                                      right: 0%; bottom: 20%;`);
 
         // this.fileInput.onchange = ( input ) => this.readImage( input );
         this.fileInput.addEventListener( 'change', ( e ) => this.readImage( e ), false );
@@ -25,97 +24,53 @@ class SVD extends SuperModel{
         this.planeMeshes = [];
         this.nImages = 20;
         this.imageWidth = 5.0;
+        this.imageHeight = this.imageWidth * 3 / 5;
 
         var planeGeometry = new THREE.PlaneGeometry();
-        var planeMaterial = new THREE.MeshBasicMaterial( { color : 0x555555, side : THREE.DoubleSide } );
+        var planeMaterial = new THREE.MeshBasicMaterial( { color : 0x555555, side : THREE.DoubleSide, transparent : true } );
         for ( var i = 0; i < this.nImages; i++ ){
             this.planeMeshes.push( new THREE.Mesh( planeGeometry.clone(), planeMaterial.clone() ) );
-            this.planeMeshes[i].scale.set( this.imageWidth, this.imageWidth * 3 / 5, 1.0 );
-            this.setPlaneParameters( i, 0, 0 );
+            this.planeMeshes[i].scale.set( this.imageWidth, this.imageHeight, 1.0 );
             this.addMesh( scene, this.planeMeshes[i] );
+            this.planeMeshes[i].material.opacity = 0.1;
         }
         // this.planeMesh = new THREE.Mesh( planeGeometry, planeMaterial );
         
-        // this.planeMesh.material.visible = false;
-        // this.addMesh( scene, this.planeMesh );
+        this.kRankStart = 0;
+        this.kRankEnd = 0;
 
         this.fileChangeRead = false;
-        this.targetAngle = 0;
-        this.autoRotateSpeed = 0.5;
-        this.autoRotate = true;
-        this.imageRotation = 0.0;
+        this.imagesPositionChanged = true;
         
-        this.gui.add( this, 'autoRotate' );
-        this.gui.add( this, 'autoRotateSpeed' ).min( 0.1 ).max( 10 ).step( 0.1 );
-        this.gui.add( this, 'imageRotation' ).min( 0 ).max( Math.PI * 2 ).step( 0.1 ).listen();
+        this.gui.add( this, 'kRankStart' ).min( 0 ).max( this.planeMeshes.length ).step( 0.1 )
+                .onChange( ( e ) => this.imagesPositionChanged = true );
+        this.gui.add( this, 'kRankEnd' ).min( 0 ).max( this.planeMeshes.length ).step( 0.1 )
+                .onChange( ( e ) => this.imagesPositionChanged = true );
     }
 
-    setPlaneParameters( index, offset,
-                        outerWindow = Math.PI / 4.0,
-                        windowSpread = Math.PI / 6.0 ){
-        var r = this.imageWidth * .85;
-        
-        var startAngle = ( index / ( this.nImages ) ) * Math.PI * 2.0;
-        var outAngle = startAngle + offset;
+    setPlaneParameters( index ){
+        index += 1;
+        var showHeight = 0;
+        var hideHeight = showHeight + this.imageHeight * 2;
 
-        // if ( outAngle > Math.PI ){
-        //     outAngle -= Math.PI * ;
-        // }
-
-        var yRotation = -outAngle + Math.PI / 2.0;
-        if ( outAngle < windowSpread && outAngle > -windowSpread){
-            var alpha = 1.2 * ( windowSpread - Math.abs( outAngle ) ) / ( windowSpread );
-
-            if ( alpha > 1 ){
-                alpha = 1;
-            }
-            // console.log( alpha );
-            r = ( 1 + alpha ) * r;
-            yRotation -= alpha * Math.PI / 2.0;
+        if ( this.kRankStart < index && index < this.kRankEnd ){
+            this.planeMeshes[index - 1].position.set( 0, showHeight, -index / this.planeMeshes.length );
         } else {
-            if ( outAngle > 0 ){
-                outAngle = outAngle + Math.PI / 4.0;
-            } else {
-                outAngle = outAngle - Math.PI / 4.0;
-            }
-            
-            yRotation = -outAngle + Math.PI / 2.0;
+            var alpha = Math.max( this.kRankStart - index, index - this.kRankEnd );
+            alpha = Math.min( alpha, 1 );
+
+            this.planeMeshes[index - 1].position.set( 0, hideHeight * alpha, -index / this.planeMeshes.length );
         }
-        // var mappedAngle =  ( index / ( this.nImages) ) * Math.PI * 2.0;
-        // var ix = -Math.sin( mappedAngle );
-        // var iz =  Math.cos( mappedAngle );
-        // var offx = -Math.sin( offset );
-        // var offz = Math.cos( offset );
-
-        // var thetaBetween = ix * offx + iz * offz;
-        // var yRotation = ( Math.PI / 2.0 ) - mappedAngle;
-
-        // var x, z;
-
-        // if ( thetaBetween > windowSpread ){
-        //     var alpha = 4 * ( thetaBetween - windowSpread ) / windowSpread; // between 0 and 1
-        //     r = ( 1 + alpha ) * r;
-        //     yRotation = yRotation + Math.PI * alpha / 2.0;
-        // }
-
-        var x = -Math.sin( outAngle ) * r;
-        var z =  Math.cos( outAngle ) * r;
-
-        this.planeMeshes[index].rotation.y = yRotation;
-        this.planeMeshes[index].position.set( x, 0, z );
     }
 
     animate( scene, camera, dt ){
-        if ( this.autoRotate ){
-            this.imageRotation += dt * this.autoRotateSpeed;
-        }
 
-        if ( this.imageRotation >= Math.PI * 2 ){
-            this.imageRotation -= Math.PI * 2;
-        }
+        if ( this.imagesPositionChanged ){
+            for ( var i = 0; i < this.nImages; i++ ){
+                this.setPlaneParameters( i );
+            }
 
-        for ( var i = 0; i < this.nImages; i++ ){
-            this.setPlaneParameters( i, this.imageRotation );
+            this.imagesPositionChanged = false;
         }
 
         if ( this.fileChangeRead == true ){
