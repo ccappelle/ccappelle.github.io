@@ -1,7 +1,6 @@
 var currentModel;
 var scene, camera, renderer, controls, clock;
 
-
 var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
 // document.body.appendChild( instructionDiv );

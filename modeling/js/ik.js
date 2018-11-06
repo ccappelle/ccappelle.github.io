@@ -93,7 +93,7 @@ class IK extends SuperModel{
 	}
 
 	animate( scene, camera, dt ){
-
+		
 		if ( this.recalcFABRIK ){
 			this.runFABRIK();
 			this.updateBones();

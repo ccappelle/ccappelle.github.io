@@ -42,14 +42,23 @@
                 top: 10%;     
             }
             .instruction-div{
+<<<<<<< HEAD
                 max-width: 350px;
+=======
+                max-width: 400px;
+>>>>>>> dev-boids
                 min-width: 300px;
                 height: 150px;
                 margin: auto;
                 background-color: rgba( 200, 200, 200, 0.75 );
                 padding: 5px;
+<<<<<<< HEAD
                 position: absolute;
                 right: 1%;
+=======
+                position: fixed;
+                right: 10px;
+>>>>>>> dev-boids
                 bottom: 10px;
                 overflow-x:hidden;
                 overflow-y:auto;
@@ -136,9 +145,11 @@
 
         <script src="js/myGeoms.js"></script>
         <script src="js/superModel.js"></script>
-        <script src="js/empty.js"></script>
 
+
+        <script src="js/empty.js"></script>
         <script src="js/ants.js"></script>
+        <script src="js/boids.js"></script>
         <script src="js/es.js"></script>
         <script src="js/ik.js"></script>
         <script src="js/lsystem.js"></script>
@@ -150,16 +161,12 @@
         <script>
             var modelDictionary = {
                 "Empty"                   : Empty,
+                "Ants"                    : Ants,
+                "Boids"                   : Boids,
                 "Evolutionary Strategies" : ES,
-                "Inverse Kinematics"      : IK,
-                "ODE Solvers"             : ODEDemo,
-                // "Empty"           : Empty,
-                // "Game of Life"    : GameOfLife,
                 "Inverse Kinematics" : IK,
                 "L-systems"       : Lsystem,
-                // "3D Model Viewer" : Viewer,
-                // "NBody 2D"                : NBody2D,
-                // "Water 2D"                : Water2D
+                "ODE Solvers"             : ODEDemo,
             }
 
             // set model options dynamically from available models
