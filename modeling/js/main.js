@@ -80,6 +80,10 @@ function updateModel( newModelName ){
     }
 }
 
+function onMouseMove( e ){
+    currentModel.mouseMoveHandler( e );
+}
+
 scene = new THREE.Scene();
 // fov, aspect ratio, near clip, far clip
 camera = new THREE.PerspectiveCamera( 75,
@@ -99,6 +103,7 @@ controls = new THREE.OrbitControls( camera, renderer.domElement );
 // resize listener
 window.addEventListener( "resize", onWindowResize, false );
 window.addEventListener( "click", onMouseClick, false );
+window.addEventListener( "mousemove", onMouseMove, false );
 // keydown listener
 
 clock = new THREE.Clock();

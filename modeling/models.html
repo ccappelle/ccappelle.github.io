@@ -38,27 +38,23 @@
             .model-div{
                 background-color: rgba(0, 0, 0, 0);
                 position: absolute;
-                left: 1%;
-                top: 10%;     
+                right: 10px;
+                bottom: 180px;
+                background-color: rgba( 200, 200, 200, 0.95 );
+                padding: 10px;
+                display: none;  
             }
             .instruction-div{
-<<<<<<< HEAD
                 max-width: 350px;
-=======
-                max-width: 400px;
->>>>>>> dev-boids
-                min-width: 300px;
+                min-width: 350px;
                 height: 150px;
                 margin: auto;
-                background-color: rgba( 200, 200, 200, 0.75 );
+                background-color: rgba( 200, 200, 200, 0.95 );
                 padding: 5px;
-<<<<<<< HEAD
                 position: absolute;
-                right: 1%;
-=======
+
                 position: fixed;
                 right: 10px;
->>>>>>> dev-boids
                 bottom: 10px;
                 overflow-x:hidden;
                 overflow-y:auto;
@@ -67,7 +63,7 @@
             .my-sidebar{
                 height:100%;
                 width:200px;
-                background-color: rgba( 200, 200, 200, 0.75 );
+                background-color: rgba( 200, 200, 200, 0.95 );
                 position:fixed!important;
                 z-index:1;
                 overflow-x:hidden;
@@ -87,9 +83,13 @@
                 background-color: rgba( 250, 250, 250, .7);
             }
 
-            a:link, a:visited, a:hover, a:active{
+            a:link, a:visited, a:active{
                 text-decoration: none;
                 color: inherit;
+                font-weight: 500;
+            }
+            a:hover {
+                font-weight: 900;
             }
 
             .button{
@@ -110,9 +110,6 @@
     <body >
         <div class="my-sidebar" style="display:block" id="sidebar">
             <div style="display: inline-block; width: 100%; background-color: #444; font-family: Arial; font-size: 20px; color: white; padding: 0px 0px">
-<!--                     <span style="display:inline; width:75%; float: left;"> <h4> Demo Options: </h4></span>
-                <span style="display: inline; width: 25%">
-                <button class="button" style="display:inline; width:25%; float: right; font-size: 40px" onclick="closeSidebar()"> &times; </button> </span> -->
                 <h4 style="position: relative; left: 3px; float:left; display: inline; padding: 0px 0px"> Demo Options: </h4>
                 <button class="button" style="float: right; font-weight: 900; font-size:20px; padding: 27px 15px" onclick="closeSidebar()"> &times; </button>
             </div>
@@ -209,17 +206,7 @@
             function onMouseClick( event ){
                 if ( event.target == document.getElementById( 'modal' ) ){
                     closeModal();
-                } 
-
-                // if ( event.target.tagName == 'CANVAS' ){
-                //     const element = document.getElementById( 'sidebar' );
-                //     style = window.getComputedStyle( element );
-                //     if ( style.getPropertyValue( 'display' ) !== 'none' ){
-                //         closeSidebar();
-                //     }
-                    
-                // }
-
+                }
             }
         </script>
         <script src="js/main.js"></script>

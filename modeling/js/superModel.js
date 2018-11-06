@@ -6,10 +6,11 @@ class SuperModel {
         this.modalContent = `WORK IN PROGRESS`;
         this.gui = new dat.GUI();
         this.pause = false;
-        this.mouseX = 0;
-        this.mouseY = 0;
+        this.mouse = new THREE.Vector2();
 
         this.pause = false;
+
+        this.raycaster = new THREE.Raycaster();
     }
 
     destroy( scene ){
@@ -73,7 +74,7 @@ class SuperModel {
     }
 
     mouseMoveHandler( event ){
-            this.mouseX = ( event.clientX / window.innerWidth ) * 2 - 1;
-            this.mouseY = 1 - ( event.clientY / window.innerHeight ) * 2;
+            this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            this.mouse.y = 1 - ( event.clientY / window.innerHeight ) * 2;
     }
 }
