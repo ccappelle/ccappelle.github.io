@@ -22,42 +22,59 @@ class GOL extends SuperModel {
         this.size = 4;
         this.eps = 0.1;
         this.ups = 10;
-        this.palive = 0.5;
+        this.pAlive = 0.5;
         
         this.highlightColor = 0x0055ff;
         this.liveColor = 0x444444;
         this.deadColor = 0xffffff;
 
         this.pause = true;
-        this.gui.add( this, 'pause' ).listen();    
+
+        this.gui.add( this, 'pause' ).listen();  
+        this.gui.add( this, 'randomize' );
+        this.gui.add( this, 'reset' );  
         this.gui.add( this, 'N' )
-                            .min( 6 ).max( 50 ).step( 1 )
+                            .min( 6 ).max( 75 ).step( 1 )
                             .onChange( ( e ) => { this.modelShouldUpdate = true;
                                                  this.pause = true } );
         this.gui.add( this, 'ups' ).min( 1 ).max( 60 ).step( 1 );
 
-        this.gui.add( this, 'palive' ).min( 0 ).max( 1 ).step( 0.01 );
-        this.gui.add( this, 'randomize' );
+        this.gui.add( this, 'pAlive' ).min( 0 ).max( 1 ).step( 0.01 );
 
         this.gui.addColor( this, 'liveColor' );
         this.gui.addColor( this, 'deadColor' );
 
+        this.layout = 'plane';
+
+        this.updateShape = true;
+
+        this.gui.add( this, 'layout', [ 'plane', 'donut' ] ).onChange( ( e ) => this.updateShape = true );
         this.cellGeom = new THREE.BoxGeometry();
         this.cellMaterial = new THREE.MeshStandardMaterial( { color : this.deadColor } );
 
         this.cells = [];
         this.chosenCell = null;
+
+        this.param1 = 1.5;
+        this.param2 = 3.2;
     }
 
     createCell( value = 0 ){
         var cell = new THREE.Mesh( this.cellGeom, this.cellMaterial.clone() );
         cell.value = value;
         cell.storedValue = value;
+        cell.baseSize = new THREE.Vector3( 1, 1, 1 );
 
         return cell;
     }
 
-    randomize( palive = this.palive ){
+    reset(){
+        for ( var i = 0; i < this.N * this.N; i++ ){
+            this.cells[i].value = 0;
+        }
+    }
+
+    randomize( palive = this.pAlive ){
         for ( var i = 0; i < this.N * this.N; i++ ){
             if ( Math.random() < palive ){
                 this.cells[i].value = 1;
@@ -69,7 +86,7 @@ class GOL extends SuperModel {
         this.pause = true;
     }
 
-    refreshCells( scene ){
+    resizeCells( scene ){
         const Nsquared = this.N * this.N;
 
         if ( Nsquared > this.cells.length ){
@@ -82,27 +99,65 @@ class GOL extends SuperModel {
             this.removeMeshesBySplice( scene, Nsquared, this.cells.length - Nsquared );
             this.cells.splice( Nsquared, this.cells.length - Nsquared );
         }
+    }
 
-        var zPos = 0;
-        var stepSize = ( 2 * this.size ) / ( this.N - 1 );
-        // reset to 0
-        for ( var i = 0; i < this.N; i++ ){
-            var yPos = -this.size + stepSize * i;
-            for ( var j = 0; j < this.N; j++ ){
-                var xPos = -this.size + stepSize * j;
-                var index = j + i * this.N;
-                this.cells[index].value = 0;
-                this.cells[index].position.set( xPos, yPos, zPos );
+    reshapeCells(){
+        if ( this.layout === 'donut' ){
+            var outerRadius = 5.5;
+            var crossRadius = 1.5;
+
+            var dTheta = Math.PI * 2 / this.N;
+
+            for ( var i = 0; i < this.N; i++ ){
+                var outerTheta = i * dTheta;
+                var x = Math.cos( outerTheta );
+                var z = Math.sin( outerTheta );
+                // var xPos = Math.cos( outerTheta ) * outerRadius;
+                // var zPos = Math.sin( outerTheta ) * outerRadius;
+
+                for ( var j = 0; j < this.N; j++ ){
+                    var innerPhi = j * dTheta;
+                    var yPos = Math.sin( innerPhi ) * crossRadius;
+                    var xPos = x * outerRadius + Math.cos( innerPhi ) * x * crossRadius;
+                    var zPos = z * outerRadius + Math.cos( innerPhi ) * z * crossRadius;
+                    this.cells[ i * this.N + j ].position.set( xPos, yPos, zPos );
+                    this.cells[ i * this.N + j ].rotation.set( 0, -outerTheta, innerPhi);
+                    this.cells[ i * this.N + j ].baseSize.set( dTheta,
+                                                               1.5 * dTheta,
+                                                               dTheta * ( crossRadius *
+                                                               Math.cos( innerPhi ) + outerRadius * 0.9 ) );
+                }
+            }
+        } else if ( this.layout == 'plane' ){
+            var gridCenter = 0;
+            var gridHeight = 9;
+            var gridWidth = 9;
+            var zPos = 0;
+            for ( var i = 0; i < this.N; i++ ){
+                var yPos = gridCenter - ( gridHeight / 2.0 ) + i * gridHeight / ( this.N - 1 );
+                for ( var j = 0; j < this.N; j++ ){
+                    var xPos = gridCenter - ( gridWidth / 2.0 ) + j * gridWidth / ( this.N - 1 );
+                    this.cells[ i * this.N + j ].position.set( xPos, yPos, zPos );
+                    this.cells[ i * this.N + j ].baseSize.setScalar( gridHeight / this.N * ( 1 - 0.1) );
+                    this.cells[ i * this.N + j ].rotation.set( 0, 0, 0);
+                }
             }
         }
     }
     
     animate( scene, camera, dt ){
         if ( this.modelShouldUpdate ){
-            this.refreshCells( scene );
+            this.resizeCells( scene );
+            this.reshapeCells();
             // this.resizeCells();
             // this.resizeMeshes( scene );
             this.modelShouldUpdate = false;
+            this.updateShape = false;
+        }
+
+        if ( this.updateShape ){
+            this.reshapeCells();
+            this.updateShape = false;
         }
 
         this.time += dt;
@@ -115,19 +170,17 @@ class GOL extends SuperModel {
 
 
         var stepSize = ( 2 * this.size ) / ( this.N - 1 );
-        var n1 = 1 / 5.0;
-        var n2 = 1 / 100.0;
+        var incr = 0.15; // percent increas
 
-        for ( var i = 0; i < this.cells.length; i++ ){
+        for ( var i = 0; i < this.N * this.N; i++ ){
+            var baseSize = this.cells[i].baseSize;
             if( this.cells[i].value == 0 ){
-                this.cells[i].scale.set( stepSize - stepSize * n1,
-                                         stepSize - stepSize * n1,
-                                         stepSize - stepSize * n1 );
+                this.cells[i].scale.set( baseSize.x, baseSize.y, baseSize.z);
                 this.cells[i].material.color.setHex( this.deadColor );
             } else {
-                this.cells[i].scale.set( stepSize - stepSize * n2,
-                                         stepSize - stepSize * n2,
-                                         stepSize - stepSize * n2);
+                this.cells[i].scale.set( baseSize.x * ( 1 + incr ),
+                                         baseSize.y * ( 1 + incr ),
+                                         baseSize.z * ( 1 + incr ) );
                 this.cells[i].material.color.setHex( this.liveColor );
             }
 
@@ -185,6 +238,7 @@ class GOL extends SuperModel {
 
     udpateCells(){
         var newValues = [];
+        var allZeros = true;
 
         for ( var i=0; i < this.N; i++ ){
             for ( var j = 0; j < this.N; j++ ){
@@ -201,7 +255,9 @@ class GOL extends SuperModel {
                         newSum += this.cells[neighborIndex].value;
                     }
                 }
-
+                if ( newSum > 0 ){
+                    allZeros = false;
+                }
                 newValues.push( newSum );
             }
         }
@@ -214,6 +270,10 @@ class GOL extends SuperModel {
             } else if ( newValues[i] > 3 ){
                 this.cells[i].value = 0.0;
             }
+        }
+
+        if ( allZeros ){
+            this.pause = true;
         }
     }
 }
