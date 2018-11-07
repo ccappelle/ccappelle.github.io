@@ -24,11 +24,18 @@ function addGround(){
 }
 
 function addLights(){
-    var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
-    var pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
-    pointLight.position.set( 10, 10, 3 );
+    var ambientLight = new THREE.AmbientLight( 0xffffff, 1.0 );
+    var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    dirLight.position.set( 0, 2, 1 );
+    // var pointLight = new THREE.PointLight( 0xddddff, 3, 0, 2 );
+    // var pointLight2 = pointLight.clone();
+
+    // pointLight.position.set( 10, 10, 3 );
+    // pointLight.position.set( 10, 10, -3 );
     scene.add( ambientLight );
-    scene.add( pointLight );
+    scene.add( dirLight );
+    // scene.add( pointLight );
+    // scene.add( pointLight2 );
 }
 
 function changeModel( event ){
@@ -80,10 +87,6 @@ function updateModel( newModelName ){
     }
 }
 
-function onMouseMove( e ){
-    currentModel.mouseMoveHandler( e );
-}
-
 scene = new THREE.Scene();
 // fov, aspect ratio, near clip, far clip
 camera = new THREE.PerspectiveCamera( 75,
@@ -102,7 +105,7 @@ controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 // resize listener
 window.addEventListener( "resize", onWindowResize, false );
-window.addEventListener( "click", onMouseClick, false );
+window.addEventListener( "mousedown", onMouseClick, false );
 window.addEventListener( "mousemove", onMouseMove, false );
 // keydown listener
 

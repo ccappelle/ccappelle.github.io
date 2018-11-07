@@ -70,7 +70,7 @@ class SuperModel {
     }
 
     mouseClickHandler( event ){
-
+        
     }
 
     mouseMoveHandler( event ){

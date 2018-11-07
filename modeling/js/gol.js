@@ -3,6 +3,17 @@ class GOL extends SuperModel {
     constructor ( scene ){
         super( scene );
 
+        this.instructionString = `This demo is an implementation of Conway's Game of Life.
+                                  Cells in the grid switch between "live" and "dead" states
+                                  based on their neighbors. Simply click a cell to toggle
+                                  its state uncheck pause to run a Game of Life.
+                                  `;
+
+        this.modalContent = `More on the Game of Life can be found on the 
+                             <a href="https://en.wikipedia.org/wiki/Glider_(Conway%27s_Life)" target="_blank">wikepdia page here</a>`
+
+        this.time = 0.0;
+
         this.N = 10;
         this.cellValues = [];
         this.cellMeshes = [];
@@ -10,25 +21,52 @@ class GOL extends SuperModel {
 
         this.size = 4;
         this.eps = 0.1;
+        this.ups = 10;
+        this.palive = 0.5;
+        
+        this.highlightColor = 0x0055ff;
+        this.liveColor = 0x444444;
+        this.deadColor = 0xffffff;
 
+        this.pause = true;
+        this.gui.add( this, 'pause' ).listen();    
         this.gui.add( this, 'N' )
                             .min( 6 ).max( 50 ).step( 1 )
-                            .onChange( ( e ) => this.modelShouldUpdate = true );
+                            .onChange( ( e ) => { this.modelShouldUpdate = true;
+                                                 this.pause = true } );
+        this.gui.add( this, 'ups' ).min( 1 ).max( 60 ).step( 1 );
 
-        var cellGeom = new THREE.BoxGeometry();
-        var cellMaterial = new THREE.MeshStandardMaterial( { color : 0xff0000 } );
-        this.cellMeshBase = new THREE.Mesh( cellGeom, cellMaterial );
+        this.gui.add( this, 'palive' ).min( 0 ).max( 1 ).step( 0.01 );
+        this.gui.add( this, 'randomize' );
+
+        this.gui.addColor( this, 'liveColor' );
+        this.gui.addColor( this, 'deadColor' );
+
+        this.cellGeom = new THREE.BoxGeometry();
+        this.cellMaterial = new THREE.MeshStandardMaterial( { color : this.deadColor } );
+
         this.cells = [];
-        // this.addMesh( scene, this.cellMesh );
+        this.chosenCell = null;
     }
 
-    createCell( ){
-        var cell = {
-            value : 0,
-            mesh : this.cellMeshBase.clone()
-        }
+    createCell( value = 0 ){
+        var cell = new THREE.Mesh( this.cellGeom, this.cellMaterial.clone() );
+        cell.value = value;
+        cell.storedValue = value;
 
         return cell;
+    }
+
+    randomize( palive = this.palive ){
+        for ( var i = 0; i < this.N * this.N; i++ ){
+            if ( Math.random() < palive ){
+                this.cells[i].value = 1;
+            } else {
+                this.cells[i].value = 0;
+            }
+        }
+
+        this.pause = true;
     }
 
     refreshCells( scene ){
@@ -38,7 +76,7 @@ class GOL extends SuperModel {
             for ( var i = this.cells.length; i < Nsquared; i++ ){
                 var cell = this.createCell();
                 this.cells.push( cell );
-                this.addMesh( scene, cell.mesh );
+                this.addMesh( scene, cell );
             }
         } else if  ( Nsquared < this.cells.length ){
             this.removeMeshesBySplice( scene, Nsquared, this.cells.length - Nsquared );
@@ -54,41 +92,7 @@ class GOL extends SuperModel {
                 var xPos = -this.size + stepSize * j;
                 var index = j + i * this.N;
                 this.cells[index].value = 0;
-                this.cells[index].mesh.position.set( xPos, yPos, zPos );
-            }
-            
-        }
-    }
-
-    resizeMeshes( scene ){
-        // add meshes if N is greater
-        const Nsquared = this.N * this.N;
-        if ( Nsquared > this.cellMeshes.length ){
-            for ( var i = this.cellMeshes.length; 
-                  i < Nsquared;
-                  i++ ){
-                var newMesh = this.cellMeshBase.clone();
-                this.cellMeshes.push( newMesh );
-                this.addMesh( scene, newMesh );
-            }
-        } else if ( Nsquared< this.cellMeshes.length ){
-            // remove meshes if N is less
-            this.removeMeshesBySplice( scene,
-                Nsquared,
-                this.cellMeshes.length - Nsquared );
-            this.cellMeshes.splice( Nsquared, this.cellMeshes.length - Nsquared ); 
-        }
-
-        // // reposition all meshes into grid
-        var stepSize = ( 2 * this.size ) / ( this.N - 1 );
-        var zPos = 0;
-        for ( var i = 0; i < this.N; i++ ){ // row
-            var yPos = -this.size + stepSize * i;
-            for ( var j = 0; j < this.N; j++ ){ // column
-                var xPos = -this.size + stepSize * j;
-                var index = j + i * this.N;
-                // var index = this.getCellIndex( i, j );
-                this.cellMeshes[index].position.set( xPos, yPos, zPos );
+                this.cells[index].position.set( xPos, yPos, zPos );
             }
         }
     }
@@ -101,312 +105,115 @@ class GOL extends SuperModel {
             this.modelShouldUpdate = false;
         }
 
+        this.time += dt;
+
+        if ( !this.pause && this.time > 1 / this.ups ){
+            this.udpateCells();
+            this.time = 0.0;
+        }
+
+
+
         var stepSize = ( 2 * this.size ) / ( this.N - 1 );
+        var n1 = 1 / 5.0;
+        var n2 = 1 / 100.0;
+
         for ( var i = 0; i < this.cells.length; i++ ){
             if( this.cells[i].value == 0 ){
-                this.cells[i].mesh.scale.set( stepSize - stepSize / 3.5,
-                                              stepSize - stepSize / 3.5,
-                                              stepSize - stepSize / 3.5 );
-                this.cells[i].mesh.rotation.x = Math.PI / 4.0;
-                this.cells[i].mesh.material.color.setHex( 0xffffff );
+                this.cells[i].scale.set( stepSize - stepSize * n1,
+                                         stepSize - stepSize * n1,
+                                         stepSize - stepSize * n1 );
+                this.cells[i].material.color.setHex( this.deadColor );
             } else {
-                this.cells[i].mesh.scale.set( stepSize - stepSize / 6.0,
-                                              stepSize - stepSize / 6.0,
-                                              stepSize - stepSize / 6.0);
-                this.cells[i].mesh.rotation.x = 0.0;
-                this.cells[i].mesh.material.color.setHex( 0x000000 );
+                this.cells[i].scale.set( stepSize - stepSize * n2,
+                                         stepSize - stepSize * n2,
+                                         stepSize - stepSize * n2);
+                this.cells[i].material.color.setHex( this.liveColor );
+            }
+
+            if ( this.cells[i].showValue < 0 ){
+                this.cells[i].material.emissive.setHex( this.highlightColor );
+            } else {
+                this.cells[i].material.emissive.setHex( 0x000000 );
+            }
+            
+            // if ( this.cells[i].material.emission.setHex( ))
+        }
+
+        this.raycaster.setFromCamera( this.mouse, camera );
+        var intersections = this.raycaster.intersectObjects( this.cells );
+
+        if ( intersections.length > 0 ){
+            if ( this.chosenCell === intersections[0].object ){
+                return;
+            }
+
+            if ( this.chosenCell ){ // reset previous cell
+                this.chosenCell.showValue = this.chosenCell.value;
+            }
+
+            this.chosenCell = intersections[0].object;
+            this.chosenCell.showValue = -1;
+        } else {
+            if ( this.chosenCell ){
+                this.chosenCell.showValue = this.value;
+            }
+            this.chosenCell = null;
+        }
+
+    }
+
+    mouseClickHandler( e ){
+        if ( this.chosenCell ){
+            this.chosenCell.value = Math.abs( this.chosenCell.value - 1 );
+        }
+    }
+    getCellIndex( row, col ){
+        if ( row < 0 ){
+            row += this.N;
+        }
+
+        if ( col < 0 ){
+            col += this.N;
+        }
+
+        col = col % this.N;
+        row = row % this.N;
+
+        return col + row * this.N;
+    }
+
+    udpateCells(){
+        var newValues = [];
+
+        for ( var i=0; i < this.N; i++ ){
+            for ( var j = 0; j < this.N; j++ ){
+                var newSum = 0;
+
+                for ( var ii = -1; ii < 2; ii++ ){
+                    for ( var jj = -1; jj < 2; jj++ ){
+                        if ( ii == 0 && jj == 0 ){
+                            continue;
+                        }
+
+                        // console.log( i, j, i + off1, j + off2 );
+                        var neighborIndex = this.getCellIndex( i + ii, j + jj );
+                        newSum += this.cells[neighborIndex].value;
+                    }
+                }
+
+                newValues.push( newSum );
+            }
+        }
+
+        for ( var i = 0; i < this.cells.length; i++ ){
+            if ( newValues[i] < 2 ){
+                this.cells[i].value = 0.0;
+            } else if ( newValues[i] == 3 ) {
+                this.cells[i].value = 1.0;
+            } else if ( newValues[i] > 3 ){
+                this.cells[i].value = 0.0;
             }
         }
     }
-
-    getCellIndex( row, col ){
-        return col + row * this.N;
-    }
 }
-
-// function createCellGeom ( scale, eps1, eps2, segs = 10 ){
-//     // creates beveled cube
-//     var shape = new THREE.Shape();
-//     shape.moveTo( -( scale - eps1 - eps2 ) / 2.0, -( scale - eps1 - eps2 )  / 2.0 );
-//     shape.lineTo( -( scale - eps1 - eps2 ) / 2.0,  ( scale - eps1 - eps2 )  / 2.0 );
-//     shape.lineTo(  ( scale - eps1 - eps2 ) / 2.0,  ( scale - eps1 - eps2 )  / 2.0 );
-//     shape.lineTo(  ( scale - eps1 - eps2 ) / 2.0, -( scale - eps1 - eps2 )  / 2.0 );
-//     shape.lineTo( -( scale - eps1 - eps2 ) / 2.0, -( scale - eps1 - eps2 )  / 2.0 );
-
-//     var extrudeSettings = {
-//         steps: 2,
-//         depth: scale / 4.0,
-//         bevelEnabled: true,
-//         bevelThickness: scale / 4.0,
-//         bevelSize: eps1 / 2.0,
-//         bevelSegments: segs
-//     }
-
-//     var geom = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings );
-//     return geom;
-// }
-
-// class GameOfLife {
-//     constructor ( N = 20, updateInterval = 1.0 ){
-//         this.N = N; // N x N number of cells
-//         this.numCells = N;
-//         // this.scale = 10.0 / N; // fits 10 x 10 grid so adjust cell size accordingly
-
-//         this.raycaster = new THREE.Raycaster(); // raycaster
-//         this.hoveredCell = [ -1, -1 ]; // which cell is currently pointed to
-//         this.interval = updateInterval; // interval between gol update steps
-//         this.countDownTimer = updateInterval; // countdown to measure interval
-
-//         this.name = "Game of Life"; 
-
-//         this.gridStart = -5.0;
-//         this.instructionString = " In Development ";
-//         this.mouse = new THREE.Vector2()
-//         this.mouse.x = 0;
-//         this.mouse.y = 0;
-
-//         this.pause = true;
-//         this.color1 = "#ffffff";
-//         this.color2 = "#00000f";
-//     }
-
-//     init ( scene, camera ){
-//         // create meshes
-
-//         this.generateMeshes( scene, camera );
-//         // special div
-//         this.updateSpecialDiv();
-
-//         this.gui = new dat.GUI({
-//         height : 5 * 32 -1 } )
-
-//         this.gui.add( this, "interval" ).min( 0.01 ).max( 1.0 ).step( 0.01 );
-//         this.gui.addColor( this, "color1" );
-//         this.gui.addColor( this, "color2" );
-//         this.gui.add( this, "numCells" ).min( 8 ).max( 60 ).step( 2 );
-//     }
-
-//     generateMeshes ( scene, camera ){
-//         this.cells = new Array( this.N ).fill( 0.0 ).map( ( ) => new Array( this.N ).fill( 0.0 )); // binary values of cells
-//         this.meshes = new Array( this.N ).fill( null ).map( ( ) => new Array( this.N ).fill( null )); // empty array to store mesh objects
-//         this.cellObjects = []; // linear version of meshes for easier looping
-
-//         var scale = 10.0 / this.N;
-//         var cellGeom = createCellGeom( scale,
-//                                        scale / 4.0,
-//                                        scale / 8.0);
-
-//         for ( var i = 0; i < this.N; i++ ){
-//             for ( var j = 0; j < this.N; j++ ){
-//                 var cellMaterial = new THREE.MeshStandardMaterial( { color: this.color1 } );
-//                 // var boxMaterial = new THREE.MeshBasicMaterial( { color: "#FFFFFF" } );
-//                 this.meshes[i][j] = new THREE.Mesh( cellGeom, cellMaterial );
-
-//                 this.meshes[i][j].position.set( this.gridStart + i * scale + scale / 2.0,
-//                                            this.gridStart + j * scale + scale / 2.0,
-//                                            0);
-//                 scene.add( this.meshes[i][j] );
-//                 this.cellObjects.push( this.meshes[i][j] );
-//             }
-//         }
-
-//         this.pause = true;
-//     }
-
-//     animate ( scene, dt, camera, p=false){
-//         if ( !this.pause ){
-//             document.getElementById( "runButton" ).innerText = "pause";
-//         } else{
-//             document.getElementById( "runButton" ).innerText = "run";
-//         }
-
-//         if ( this.N != this.numCells ){ // recreate grid
-//             this.removeMeshes( scene );
-//             this.N = this.numCells;
-//             this.generateMeshes( scene, camera );
-
-//         }
-//         // update countdown
-//         this.countDownTimer -= dt;
-
-//         if ( this.countDownTimer < 0){
-//             this.countDownTimer = -1.0;
-//         }
-
-//         if ( this.countDownTimer < 0 && this.pause == false){ // if countdown is ready and running
-//             this.updateCells();
-//             this.countDownTimer = this.interval; // reset countdown
-//         }
-//     }
-
-//     render ( renderer, scene, camera ){
-//         // console.log ( this.mouse );
-//         this.raycaster.setFromCamera( this.mouse, camera );
-//         var intersects = this.raycaster.intersectObjects( this.cellObjects );
-
-//     // if ( intersects.length > 0 ){
-//     //     var intersect = intersects[ 0 ];
-//     //     intersect.object.material.color.set( 0x0000f0 );
-//     // }
-//         this.hoveredCell = [-1, -1];
-
-//         // reset cell color to black or white
-//         for ( var i = 0; i < this.N; i++ ){
-//             for ( var j = 0; j < this.N; j++ ){
-//                 if ( this.cells[i][j] == 0.0 ){
-//                     this.meshes[i][j].material.color.set( this.color1 );
-//                     this.meshes[i][j].scale.set( 1, 1, 1 );
-//                 }
-//                 else {
-//                     this.meshes[i][j].material.color.set( this.color2 );
-//                     this.meshes[i][j].scale.set( 1, 1, 1.5 );
-//                 }
-                
-//             }
-//         }
-
-//         // color hovered cell and set hover cell ij
-//         if ( intersects.length > 0 ){
-//             var intersect = intersects[ 0 ];
-//             intersect.object.material.color.set( 0x6680de );
-//             for ( var i = 0; i < this.N; i++ ){
-//                 for ( var j = 0; j < this.N; j++ ){
-//                     if ( intersect.object == this.meshes[i][j] ){
-//                         this.hoveredCell = [i, j];
-//                     }
-//                 }
-//             }
-//         }
-
-//         renderer.render( scene, camera ); 
-//     }
-
-//     clean ( scene ){
-//         this.removeMeshes( scene );
-//         this.gui.destroy();
-//     }
-    
-//     removeMeshes ( scene ){
-//         for ( var i = 0; i < this.cellObjects.length; i++ ){
-//             scene.remove( this.cellObjects[ i ] );
-//         }
-//     }
-
-//     setMouse( x, y ){
-//         this.mouse.x = x;
-//         this.mouse.y = y;
-//     }
-
-//     mouseClick( event ){
-//     //console.log( hoverCell );
-//         if ( this.hoveredCell[0] != -1 && this.hoveredCell[1] != -1 ){
-//             this.cells[ this.hoveredCell[0 ]][ this.hoveredCell[1] ] = 
-//                 ( ( this.cells[ this.hoveredCell[0] ][ this.hoveredCell[1] ] - 1 ) % 2 + 2 ) % 2;
-//         }
-//     // console.log( cells );
-//     }
-    
-//     updateCells( ){
-//         var updated = new Array(this.N).fill(0.0).map(()=>new Array(this.N).fill(0.0));
-
-//         // sum neighbors over toroidal map
-//         for ( var i = 0; i < this.N; i++ ){
-//             for ( var j = 0; j < this.N; j++ ){
-//                 // N
-//                 updated[i][j] += this.cells[ i % this.N ][ ( j + 1 ) % this.N ];
-//                 // NE
-//                 updated[i][j] += this.cells[ ( i + 1 ) % this.N ][ ( j + 1 ) % this.N ];
-//                 // E
-//                 updated[i][j] += this.cells[ ( i + 1 ) % this.N ][ j % this.N ];
-//                 // SE
-//                 updated[i][j] += this.cells[ ( i + 1 ) % this.N ][ ( ( j - 1 ) % this.N + this.N ) % this.N ];
-//                 // S
-//                 updated[i][j] += this.cells[ i % this.N ][ ( ( j - 1) % this.N + this.N ) % this.N ];
-//                 // SW
-//                 updated[i][j] += this.cells[ ( ( i - 1 ) % this.N + this.N ) % this.N ][ ( ( j - 1 ) % this.N + this.N ) % this.N ];
-//                 // W
-//                 updated[i][j] += this.cells[ ( ( i - 1 ) % this.N + this.N ) % this.N ][ j % this.N ];
-//                 // NW
-//                 updated[i][j] += this.cells[ ( ( i - 1 ) % this.N + this.N ) % this.N ][ ( j + 1 ) % this.N ];
-
-//             }
-//         }
-
-//         // kill and generate cells
-//         for ( var i = 0; i < this.N; i++ ){
-//             for ( var j = 0; j < this.N; j++ ){
-//                 if ( updated[i][j] < 2 ){
-//                     this.cells[i][j] = 0;
-//                 }
-//                 if ( updated[i][j] > 3 ){
-//                     this.cells[i][j] = 0;
-//                 }
-//                 if ( updated[i][j] == 3 ){
-//                     this.cells[i][j] = 1;
-//                 }
-//                 if ( updated[i][j] == 2){
-//                 }
-//             }
-//         }
-//     }
-
-
-//     updateSpecialDiv(){
-//         var specialDiv = document.getElementById( "special" );
-
-//         var runButton = document.createElement( "button" );
-//         runButton.setAttribute( "id", "runButton" );
-//         runButton.innerText = "run";
-//         runButton.setAttribute( "style", "position: absolute; left: 10px; top: 20px;" + 
-//                                 "height: 20px; width: 50px; text-align: center;");
-
-//         runButton.addEventListener( "click", (e) => { this.togglePause( e ); });
-//         specialDiv.appendChild( runButton );
-
-//         var clearButton = document.createElement( "button" );
-//         clearButton.setAttribute( "id", "clearButton" );
-//         clearButton.innerText = "clear";
-//         clearButton.setAttribute( "style", "position: absolute; left: 80px; top: 20px; " + 
-//                         "height: 20px; width: 50px; text-align: center;");
-//         clearButton.addEventListener( "click", (e) => { this.clear( e ); } );
-//         specialDiv.appendChild( clearButton );
-
-//         var patternMenu = document.createElement( "select" );
-//         patternMenu.id = "pattenMenu";
-//         specialDiv.appendChild( patternMenu )
-//         var patterns = [ "", "glider", "glider gun" ];
-//         for ( var i = 0; i < patterns.length; i++ ){
-//             var option = document.createElement( "option" );
-//             option.value = patterns[ i ];
-//             option.text = patterns[ i ];
-//             patternMenu.appendChild( option );
-//         }
-//     }
-
-//     togglePause( event ){
-//         this.pause = !this.pause;
-//     }
-
-//     clear( event ){
-//         this.cells = new Array( this.N ).fill( 0.0 ).map( ( ) => new Array( this.N ).fill( 0.0 )); // binary values of cells
-//         if ( !this.pause ){
-//             this.togglePause( null );
-//         }
-//     }
-
-//     addPattern ( name ) {
-//         centeri = Math.floor( this.N / 2 );
-//         centerj = Math.floor( this.N / 2 );
-//         if ( name == "glider" ){
-//             // 0 1 0
-//             // 0 0 1
-//             // 1 1 1
-//             this.cells[ centeri ][ centerj - 1 ] = 1;
-//             this.cells[ centeri + 1 ][ centerj ] = 1;
-//             this.cells[ centeri - 1 ][ centerj + 1 ] = 1;
-//             this.cells[ centeri ][ centerj + 1 ] = 1;
-//             this.cells[ centeri + 1 ][ centerj + 1 ] = 1;
-//         }
-//     }
-// }
-

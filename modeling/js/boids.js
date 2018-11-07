@@ -4,6 +4,7 @@ class Boids extends SuperModel{
         super( scene );
 
         this.boids = [];
+        this.pause = true;
         // this.boidMeshes = [];
         this.perceptionMeshes = [];
 
@@ -11,68 +12,44 @@ class Boids extends SuperModel{
 
         this.time = 0;
 
-        this.perceptionAngle = Math.PI/ 2.0;
-        this.perceptionRadius = 4.0;
-
-        this.perceptionChanged = false;
-        this.gui.add( this, 'perceptionAngle' ).min( 0 ).max( Math.PI ).step( 0.1 )
-                .onChange( ( e ) => this.perceptionChanged = true );
-        this.gui.add( this, 'perceptionRadius' ).min( 0.1 ).max( 10 ).step( 0.1 );
-
         this.showPerception = true;
         this.gui.add( this, 'showPerception' );
 
+        this.position = new THREE.Vector3( 0.0, 0.0, 0.0 );
+        this.direction = new THREE.Vector3( 1.0, 0.0, 0.0 );
+        this.angle = 90;
+        this.radius = 5;
+
+        this.addNewBoid = ( e ) => this.addBoid( scene, this.position.clone(),
+							this.direction.clone(), this.angle * Math.PI / 180, this.radius );
+        this.newBoidFolder = this.gui.addFolder( 'New Boid Parameters' );
+
+        this.newBoidFolder.add( this, 'addNewBoid' );
+        var posFolder = this.newBoidFolder.addFolder( 'Position' );
+
+        posFolder.add( this.position, 'x' ).min( -5 ).max( 5 ).step( 0.1 );
+        posFolder.add( this.position, 'y' ).min( -5 ).max( 5 ).step( 0.1 );
+        posFolder.add( this.position, 'z' ).min( -5 ).max( 5 ).step( 0.1 );
+        var dirFolder = this.newBoidFolder.addFolder( 'Direction' );
+        dirFolder.add( this.direction, 'x' ).min( -1 ).max( 1 ).step( 0.1 );
+        dirFolder.add( this.direction, 'y' ).min( -1 ).max( 1 ).step( 0.1 );
+        dirFolder.add( this.direction, 'z' ).min( -1 ).max( 1 ).step( 0.1 );
+        var perceptionFolder = this.newBoidFolder.addFolder( 'Perception' );
+        perceptionFolder.add( this, 'radius' ).min( 0 ).max( 10 ).step( 0.1 );
+        perceptionFolder.add( this, 'angle' ).min( 0 ).max( 180 ).step( 1 );
+
+        this.boidFolder = null;
+
         this.perceptionMaterial = new THREE.LineBasicMaterial( { color : 0xff0000 } );
-        this.chosenBoid = null;
 
-        this.addRandomBoid = ( e ) => this.addBoid( scene, 
-                                new THREE.Vector3( Math.random() * 10 - 5,
-                                                   Math.random() * 10 - 5,
-                                                   Math.random() * 10 - 5),
-                                new THREE.Vector3( Math.random() * 2 - 1,
-                                                   Math.random() * 2 - 1,
-                                                   Math.random() * 2 - 1).normalize(),
-                                this.perceptionAngle,
-                                this.perceptionRadius );
+        this.hoveredBoid = null;
+        this.currentBoid = null;
 
-        this.gui.add( this, 'addRandomBoid' );
-        // this.addRandomBoid();
-        // this.addBoid( scene, this.perceptionAngle, this.perceptionRadius );
-
-        // this.testSpheres = [];
-        // var nDots = 5;
-
-        // var sphereGeom = new THREE.SphereGeometry();
-        // var sphereMaterial = new THREE.MeshBasicMaterial( { color : 0x888888, transparent : true, opacity : 0.3 } );
-        // for ( var i = 0; i < nDots; i++ ){
-        //     var x = -5 + ( i / nDots ) * 10;
-        //     for ( var j = 0; j < nDots; j++ ){
-        //         var y = -5 + ( j / nDots ) * 10;
-        //         for ( var k = 0; k < nDots; k++ ){
-        //             var z = -5 + ( k / nDots ) * 5;
-        //             var sphereMesh = new THREE.Mesh( sphereGeom, sphereMaterial.clone() );
-        //             sphereMesh.position.set( x, y, z );
-        //             sphereMesh.scale.set( 0.1, 0.1, 0.1 );
-        //             this.testSpheres.push( sphereMesh );
-        //             this.addMesh( scene, sphereMesh );
-        //         }
-        //     }
-        // }
+        this.addNewBoid();
     }
 
     animate( scene, camera, dt ){
-        // if ( this.perceptionChanged ){
-        //     var geom = this.createPerceptionGeometry( this.perceptionAngle );
-        //     for ( var i = 0; i < this.boids.length; i++ ){
-        //         this.boids[i].perceptionAngle = this.perceptionAngle;
-        //         // remove mesh from scene
-        //         this.removeMesh( scene, this.boids[i].perceptionLine );
-        //         this.boids[i].perceptionLine = new THREE.Line( geom, this.perceptionMaterial );
-        //         this.addMesh( scene, this.boids[i].perceptionLine );
-        //     }
 
-        //     this.perceptionChanged = false;
-        // }
         if ( !this.pause ){
             this.time += dt;
         }
@@ -111,7 +88,7 @@ class Boids extends SuperModel{
             } else {
                 this.boids[i].perceptionLine.visible = false;
             }
-
+            this.boids[i].mesh.myIndex = i;
             boidObjects.push( this.boids[i].mesh );
         }
 
@@ -121,26 +98,13 @@ class Boids extends SuperModel{
         // var intersections = this.raycaster.intersectObjects( scene.children );
         // console.log( intersections );
         if ( intersections.length > 0 ){
-            if ( this.chosenBoid != intersections[0].object ){
-                if ( this.chosenBoid ){
-                    this.chosenBoid.material.emissive.setHex( this.chosenBoid.currentHex );
-                }
-
-                this.chosenBoid = intersections[0].object;
-                this.chosenBoid.currentHex = this.chosenBoid.material.emissive.getHex();
-                this.chosenBoid.material.emissive.setHex( 0xff0000 );
-            }
+        	var boid = this.boids[intersections[0].object.myIndex];
+        	this.updateHoveredBoid( boid );
         } else {
-            if ( this.chosenBoid ){
-                this.chosenBoid.material.emissive.setHex( this.chosenBoid.currentHex );
-            }
-
-            this.chosenBoid = null;
+        	this.updateHoveredBoid( null );
         }
-        // for ( var i = 0; i < this.boids.length; i++ ){
-        //     var 
-        // }
     }
+
     aSeesB( aPoint, bPoint, aDirection, aRadius, aAngle ){
         var aToB = bPoint.clone();
         aToB.sub( aPoint );
@@ -154,7 +118,9 @@ class Boids extends SuperModel{
             return false;
         }
     }
+
     addBoid( scene, position, velocity, perceptionAngle, perceptionRadius ){
+    	console.log( 'adding boid' );
         var boidGeom = this.createBoidGeometry();
         var boidMaterial = new THREE.MeshStandardMaterial( { color : 0x00ff00 } );
         var boidMesh = new THREE.Mesh( boidGeom, boidMaterial );
@@ -175,6 +141,66 @@ class Boids extends SuperModel{
         this.addMesh( scene, boidMesh );
         this.addMesh( scene, perceptionLine );
         this.boids.push( boid );
+        this.updateCurrentBoid( boid );
+    }
+
+    updateHoveredBoid( boid ){
+    	if ( this.hoveredBoid === boid ){
+    		return;
+    	}
+
+    	if ( this.hoveredBoid ){
+    		this.hoveredBoid.mesh.material.emissive.setHex( this.hoveredBoid.mesh.unHighlightedHex ); // reset color
+    	}
+    	if ( boid ){
+    		this.hoveredBoid = boid;
+			this.hoveredBoid.unHighlightedHex = this.hoveredBoid.mesh.material.emissive;
+			this.hoveredBoid.mesh.material.emissive.setHex( 0xff0000 );
+    	} else {
+    		this.hoveredBoid = null;
+    	}
+
+    }
+
+    updateCurrentBoid( boid ){
+    	if ( boid == null ){
+    		return
+    	}
+    	if ( boid.mesh === this.currentBoid ){
+    		return;
+    	}
+
+    	if ( this.currentBoid ){ // if replacing other boid, change back color
+    		this.currentBoid.mesh.material.color.setHex( this.currentBoid.baseHex );
+    		this.currentBoid.unHighlightedHex = this.currentBoid.mesh.material.color;
+    	}
+    	// set color of chosen boid
+    	this.currentBoid = boid;
+    	this.currentBoid.baseHex = boid.mesh.material.color.getHex();
+    	this.currentBoid.unHighlightedHex = 0x0000bb;
+    	this.currentBoid.mesh.material.color.set( this.currentBoid.unHighlightedHex );
+
+    	if ( this.boidFolder ){
+    		this.gui.removeFolder( this.boidFolder );
+    	}
+    	
+    	this.boidFolder = this.gui.addFolder( 'Selected Boid Parameters' );
+    	var posFolder = this.boidFolder.addFolder( 'Position' );
+    	var dirFolder = this.boidFolder.addFolder( 'Direction' );
+
+    	posFolder.add( boid.position, 'x' )
+    			.listen();
+    	posFolder.add( boid.position, 'y' ).listen();
+    	posFolder.add( boid.position, 'z' ).listen();
+
+    	dirFolder.add( boid.velocity, 'x' ).listen();
+    	dirFolder.add( boid.velocity, 'y' ).listen();
+    	dirFolder.add( boid.velocity, 'z' ).listen();
+
+    	var perceptionFolder = this.boidFolder.addFolder( 'Perception' );
+        perceptionFolder.add( boid, 'perceptionRadius' ).min( 0 ).max( 10 ).step( 0.1 );
+        perceptionFolder.add( boid, 'perceptionAngle' ).min( 0 ).max( 180 ).step( 1 );
+    	this.boidFolder.open();
     }
 
     createPerceptionGeometry( theta, segments=3, n = 30 ){
@@ -223,6 +249,10 @@ class Boids extends SuperModel{
         }
         geometry.vertices.push( new THREE.Vector3( 0, 0, 0 ) );
         return geometry;
+    }
+
+    mouseClickHandler( e ){
+    	this.updateCurrentBoid( this.hoveredBoid );
     }
 
 
