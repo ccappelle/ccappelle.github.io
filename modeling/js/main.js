@@ -1,30 +1,5 @@
 var currentModel;
-var scene, camera, renderer, controls, clock;
-
-var modelDictionary = {
-    "Empty"                   : Empty,
-    "Evolutionary Strategies" : ES,
-    "Inverse Kinematics"      : IK,
-    "ODE Solvers"             : ODEDemo,
-    // "Empty"           : Empty,
-    // "Game of Life"    : GameOfLife,
-    "Inverse Kinematics" : IK,
-    "L-systems"       : Lsystem,
-    // "3D Model Viewer" : Viewer,
-    // "NBody 2D"                : NBody2D,
-    // "Water 2D"                : Water2D
-}
-
-// create selector
-var modelSelector = document.getElementById( "model-selector" );
-modelSelector.addEventListener( "change", changeModel );
-
-for (const [key, value] of Object.entries( modelDictionary ) ) {
-    var modelOption = document.createElement( "option" );
-    modelOption.value = key;
-    modelOption.text = key;
-    modelSelector.appendChild( modelOption );
-}
+var scene, camera, renderer, controls, clock, skyboxGroup;
 
 var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...</a>`
 
@@ -32,8 +7,10 @@ var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...
 
 function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
+    texture.minFilter = THREE.LinearFilter;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+
     texture.repeat.set( 20, 20 );
 
     var planeGeometry = new THREE.PlaneBufferGeometry( 20, 20, 32, 32 );
@@ -46,11 +23,59 @@ function addGround(){
 }
 
 function addLights(){
-    var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
-    var pointLight = new THREE.PointLight( 0xfffff0, 3, 0, 2 );
-    pointLight.position.set( 10, 10, 3 );
+    var ambientLight = new THREE.AmbientLight( 0xffffff, 1.0 );
+    var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    dirLight.position.set( 0, 2, 1 );
+
+
     scene.add( ambientLight );
-    scene.add( pointLight );
+    scene.add( dirLight );
+}
+
+function addSkybox(){
+    console.log( 'added skybox' );
+
+    var prefix = 'textures/blizzard_';
+    var suffix = '.tga';
+    var directions = [ 'rt', 'lf', 'up', 'dn', 'ft', 'bk' ];
+    
+    var geometry = new THREE.PlaneBufferGeometry( 1, 1, 1, 1 );
+    var knownTexture = new THREE.TextureLoader().load( 'textures/groundimg.png' );
+    var distance = 500;
+
+    skyboxGroup = new THREE.Group();
+    for ( var i = 0; i < 6; i++ ){
+        var texture = new THREE.TGALoader().load( prefix + directions[i] + suffix );
+        // var material = new THREE.MeshBasicMaterial( { map: knownTexture } );
+        var material = new THREE.MeshBasicMaterial( { map : texture } );
+        var skybox = new THREE.Mesh( geometry, material );
+        skybox.scale.set( distance * 2, distance * 2, 1);
+        if ( i == 0 ){
+            skybox.position.set(  distance, 0, 0 );
+            skybox.rotation.y = -Math.PI / 2.0;
+        } else if ( i == 1 ){
+            skybox.position.set( -distance, 0, 0 );
+            skybox.rotation.y = Math.PI / 2.0;
+        } else if ( i == 2 ){
+            skybox.position.set( 0, distance, 0 );
+            skybox.rotation.x = Math.PI / 2.0;
+            skybox.rotation.z = Math.PI / 2.0;
+        } else if ( i == 3 ){
+            skybox.position.set( 0, -distance, 0 );
+            skybox.rotation.x = -Math.PI / 2.0;
+            skybox.rotation.z = -Math.PI / 2.0;
+        } else if ( i == 4 ){
+            skybox.position.set( 0, 0, distance );
+            skybox.rotation.y = -Math.PI;
+        } else if ( i == 5 ){
+            skybox.position.set( 0, 0, -distance );
+            skybox.rotation.y = 0;
+        }
+
+        skyboxGroup.add( skybox );
+    }
+
+    scene.add( skyboxGroup );
 }
 
 function changeModel( event ){
@@ -69,8 +94,12 @@ function onWindowResize(){
 
 function run(){
     requestAnimationFrame( run );
-    var dt = clock.getDelta();
+    // var dt = clock.getDelta();
+    var dt = 1 / 60.0;
 
+
+    // set skybox
+    skyboxGroup.position.set( camera.position.x, camera.position.y, camera.position.z );
     currentModel.animate( scene, camera, dt );
 
     controls.update();
@@ -78,33 +107,29 @@ function run(){
 }
 
 function updateModel( newModelName ){
-    if ( currentModel instanceof SuperModel ){
-        currentModel.destroy( scene );
-    }
 
-    if ( newModelName in modelDictionary ){
-        currentModel = new modelDictionary[newModelName]( scene );
-        instructionDiv = document.getElementById( 'instruction-div' );
-        instructionDiv.innerHTML = "<p>" + currentModel.instructionString
-                                  + "</p> " + linkString;
-        var modalDiv = document.getElementById( 'modal-content' );
-        modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
-        document.getElementById( 'model-div' ).innerHTML = '';
-    } else {
-        console.log( "Model not in dictionary" );
+    if ( newModelName != currentModelName ){
+        currentModelName = newModelName;
+
+        if ( currentModel instanceof SuperModel ){
+            currentModel.destroy( scene );
+        }
+
+        if ( newModelName in modelDictionary ){
+            currentModel = new modelDictionary[newModelName]( scene );
+            instructionDiv = document.getElementById( 'instruction-div' );
+            instructionDiv.innerHTML = "<p>" + currentModel.instructionString
+                                      + "</p> " + linkString;
+            var modalDiv = document.getElementById( 'modal-content' );
+            modalDiv.innerHTML = '<p align="justify">' + currentModel.modalContent + "</p>";
+            document.getElementById( 'model-div' ).innerHTML = '';
+            document.getElementById( 'model-div' ).style.display = 'none';
+        } else {
+            console.log( "Model not in dictionary" );
+        }
     }
-    
 }
 
-function onMouseClick( event ){
-    if ( event.target == document.getElementById( 'modal' ) ){
-        document.getElementById( 'modal' ).style.display = "none";
-    }
-}
-
-function openModal(){
-    document.getElementById( 'modal' ).style.display = 'block';
-}
 scene = new THREE.Scene();
 // fov, aspect ratio, near clip, far clip
 camera = new THREE.PerspectiveCamera( 75,
@@ -113,7 +138,7 @@ camera = new THREE.PerspectiveCamera( 75,
                                       1000 );
 camera.position.set( 8, 0, 15 );
 
-renderer = new THREE.WebGLRenderer( { antialias: true} );
+renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setClearColor( "#f0f0f0" );
 renderer.setSize( window.innerWidth,
                   window.innerHeight );
@@ -123,12 +148,16 @@ controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 // resize listener
 window.addEventListener( "resize", onWindowResize, false );
-window.addEventListener( "click", onMouseClick, false );
+window.addEventListener( "mousedown", onMouseClick, false );
+window.addEventListener( "mousemove", onMouseMove, false );
 // keydown listener
 
 clock = new THREE.Clock();
 
+addSkybox();
 addGround();
 addLights();
+
+currentModelName = ''
 updateModel( "Empty" );
 run();

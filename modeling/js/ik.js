@@ -14,6 +14,7 @@ class IK extends SuperModel{
 		this.recalcFABRIK = true;
 		this.eps = 0.01;
 		this.maxIterations = 10;
+		this.armChanged = true;
 
 		// add grid helper
 		var xyGrid = new THREE.GridHelper( 10, 10 );
@@ -43,9 +44,9 @@ class IK extends SuperModel{
 
 		// add target
 		this.ballPosition = new THREE.Vector3( 5, 0, 0 );
-		this.ballColor = 0x00ff00;
+		this.targetColor = 0x00ff00;
 
-		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.ballColor } );
+		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.targetColor } );
 		var ballGeometry = new THREE.SphereGeometry( 0.3, 32, 32 );
 		this.ballMesh = new THREE.Mesh( ballGeometry, ballMaterial );
 
@@ -70,13 +71,13 @@ class IK extends SuperModel{
 					.max( 5 )
 					.step( 0.1 )
 					.onChange( ( value ) => { this.ballMesh.position.setZ( value ); this.recalcFABRIK = true; } );
-		targetFolder.addColor( this, "ballColor" )
+		targetFolder.addColor( this, "targetColor" )
 					.onChange( ( value ) => { this.ballMesh.material.color.setHex( value ) } );
 
 		this.bones = [];
 		this.boneFolder = this.gui.addFolder( 'Bones' );
 		this.boneFolders = [];
-		this.boneMeshes = [];
+		// this.boneMeshes = [];
 
 		this.controlPoints = [];
 		this.controlPoints.push( new THREE.Vector3( 0, 0, 0 ) );
@@ -93,7 +94,7 @@ class IK extends SuperModel{
 	}
 
 	animate( scene, camera, dt ){
-
+		
 		if ( this.recalcFABRIK ){
 			this.runFABRIK();
 			this.updateBones();
@@ -110,19 +111,42 @@ class IK extends SuperModel{
 											  );
 		}
 
-		var xUnitVector = new THREE.Vector3( 1, 0, 0 );
-
 		// draw control points
 		for ( var i = 0; i < this.bones.length; i++ ){
-			var quaternion = new THREE.Quaternion();
-			quaternion.setFromUnitVectors( xUnitVector, this.bones[i].direction );
-			this.boneMeshes[i].setRotationFromQuaternion( quaternion );
-			this.boneMeshes[i].position.set( this.bones[i].position.x,
+			// this.boneMeshes[i].rotation.x = 0;
+			this.bones[i].mesh.rotation.x = 0;
+			// not dir = ( 0, 1 , 0 );
+			if( Math.abs( this.bones[i].direction.x ) + Math.abs( this.bones[i].direction.z ) > 0.05 ){
+				var XZdir = ( new THREE.Vector3( this.bones[i].direction.x, 
+											   0,
+											   this.bones[i].direction.z )).normalize();
+				var mult = 1.0;
+				if( XZdir.z > 0 ){
+					mult = -1.0;
+				}
+
+
+				var angle = mult * Math.acos( XZdir.x );
+				this.bones[i].mesh.rotation.y = angle;
+				this.bones[i].mesh.rotation.z = Math.asin( this.bones[i].direction.y );
+			} else {
+				this.bones[i].mesh.rotation.y = 0;
+				this.bones[i].mesh.rotation.z = Math.PI * Math.sign( this.bones[i].direction.y ) / 2.0;
+			}
+			this.bones[i].mesh.position.set( this.bones[i].position.x,
 											 this.bones[i].position.y,
 											 this.bones[i].position.z
 										    );
 			// this.boneMeshes[i].rotation.x = 0.0;
-			this.boneMeshes[i].scale.set( this.bones[i].length, 1, 1 );
+			this.bones[i].mesh.scale.set( this.bones[i].length, 1, 1 );
+			
+
+			// this.boneMeshes[i].position.set( this.bones[i].position.x,
+			// 								 this.bones[i].position.y,
+			// 								 this.bones[i].position.z
+			// 							    );
+			// // this.boneMeshes[i].rotation.x = 0.0;
+			// this.boneMeshes[i].scale.set( this.bones[i].length, 1, 1 );
 		}
 	}
 
@@ -134,7 +158,7 @@ class IK extends SuperModel{
 			return;
 		}
 		var controlMesh = this.controlMeshes.pop();
-		var boneMesh = this.boneMeshes.pop();
+		// var boneMesh = this.boneMeshes.pop();
 
 		var bone = this.bones.pop();
 		this.controlPoints.pop();
@@ -143,7 +167,7 @@ class IK extends SuperModel{
 		this.boneFolders.pop();
 
 		this.removeMesh( scene, controlMesh );
-		this.removeMesh( scene, boneMesh );
+		this.removeMesh( scene, bone.mesh );
 
 
 		this.recalcFABRIK = true;
@@ -158,20 +182,13 @@ class IK extends SuperModel{
 
 		var controlMat = new THREE.MeshStandardMaterial( { color : 0x000000 } );
 		var controlGeom = new THREE.SphereGeometry(0.2, 10, 10 );
-		var mesh = new THREE.Mesh( controlGeom, controlMat );
-		this.controlMeshes.push( mesh );
-
-		// var boneMat = new THREE.LineBasicMaterial( { color : 0xff0000 } );
-		// var boneGeom = new THREE.Geometry();
-		// boneGeom.vertices.push( new THREE.Vector3( -0.5, 0.0, 0.0 ),
-		// 						new THREE.Vector3( 0.5, 0.0, 0.0 ) );
-		// boneGeom.dynamic = true;
-		// var boneMesh = new THREE.Line( boneGeom, boneMat );
+		var controlMesh = new THREE.Mesh( controlGeom, controlMat );
+		this.controlMeshes.push( controlMesh );
 
 		var boneMat = new THREE.MeshStandardMaterial( { color : 0xff0000 } );
 		var boneGeom = new THREE.BoxGeometry( 1, 0.2, 0.2 );
 		var boneMesh = new THREE.Mesh( boneGeom, boneMat );
-		this.boneMeshes.push( boneMesh );
+		// this.boneMeshes.push( boneMesh );
 
 		var bone = {
 			length : 1,
@@ -182,14 +199,16 @@ class IK extends SuperModel{
 			axis : new THREE.Vector3( 0, 0, 1 ),
 			color : 0xff0000,
 			direction : ( new THREE.Vector3( 1, 0, 0 ) ).normalize(),
-			position : new THREE.Vector3()
+			desiredDirection : ( new THREE.Vector3( 1, 0, 0 ) ).normalize(),
+			position : new THREE.Vector3(),
+			mesh : boneMesh,
 		}
 
 		this.bones.push( bone );
 		this.boneFolders.push( this.boneFolder.addFolder( String( index + 1 ) ) );
 
 		this.boneFolders[index].add( bone, 'length' ).min( 0 ).max( 5 ).step( 0.1 )
-							   .onChange( ( value ) => { this.recalcFABRIK = true; } );
+							   .onChange( ( value ) => { this.recalcFABRIK = true; this.armChanged = true;} );
 		this.boneFolders[index].addColor( bone, 'color' )
 							   .onChange( ( value ) => boneMesh.material.color.setHex( value ) );
 
@@ -200,14 +219,23 @@ class IK extends SuperModel{
 		point.addScaledVector( bone.direction, bone.length );
 		this.controlPoints.push( point );
 
-		this.addMesh( scene, mesh );
-		this.addMesh( scene, boneMesh );
+		this.addMesh( scene, controlMesh );
+		this.addMesh( scene, bone.mesh );
 
 		this.recalcFABRIK = true;
 	}
 
 	runFABRIK( ){
-		var error = 1.0;
+		// TO DO:
+		// run radius check
+
+		////
+		var error = this.controlPoints[ this.controlPoints.length - 1 ].distanceTo( this.ballPosition );
+		if ( this.armChanged ){
+			error = 1;
+			this.armChanged = false;
+		}
+		
 		var count = 0;
 		while( error > this.eps && count < this.maxIterations ){
 			var cpBack = [];

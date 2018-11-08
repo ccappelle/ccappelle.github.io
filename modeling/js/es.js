@@ -152,11 +152,13 @@ class ES extends SuperModel {
             this.populationMeshes.push( ballMesh );
         }
 
+        document.getElementById( 'model-div' ).style.display = 'inline-block';
         this.bestMesh = new THREE.Mesh( ballGeom, new THREE.MeshLambertMaterial( { color: 0xf05011 } ) );
         this.addMesh( scene, this.bestMesh );
         this.bestMesh.visible = false;
 
         this.initPopulation();
+
     }
 
     guiNeedsUpdate( e ){
