@@ -7,7 +7,7 @@ var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...
 
 function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
-    texture.minFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.NearestFilter;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
 
