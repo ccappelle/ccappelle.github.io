@@ -149,7 +149,8 @@ controls = new THREE.OrbitControls( camera, renderer.domElement );
 // resize listener
 window.addEventListener( "resize", onWindowResize, false );
 window.addEventListener( "mousedown", onMouseClick, false );
-window.addEventListener( "mousemove", onMouseMove, false );
+window.addEventListener( "mousemove", ( e ) => currentModel.mouseMoveHandler( e ), false );
+window.addEventListener( 'keydown', ( e ) => currentModel.keyDownHandler( e ), false );
 // keydown listener
 
 clock = new THREE.Clock();

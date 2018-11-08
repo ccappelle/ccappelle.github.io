@@ -12,7 +12,7 @@ class Boids extends SuperModel{
 
         this.time = 0;
 
-        this.showPerception = true;
+        this.showPerception = false;
         this.gui.add( this, 'showPerception' );
 
         this.position = new THREE.Vector3( 0.0, 0.0, 0.0 );
@@ -22,30 +22,42 @@ class Boids extends SuperModel{
 
         this.addNewBoid = ( e ) => this.addBoid( scene, this.position.clone(),
 							this.direction.clone(), this.angle * Math.PI / 180, this.radius );
+
+        this.addRandomBoids = ( e ) => {
+            for ( var i = 0; i < 10; i++ ){
+                var position = new THREE.Vector3(
+                            Math.random() * 10 - 5,
+                            Math.random() * 10 - 5,
+                            Math.random() * 10 - 5
+                        );
+                var direction = new THREE.Vector3(
+                        Math.random() * 2 - 1,
+                        Math.random() * 2 - 1,
+                        Math.random() * 2 - 1
+                    );
+                this.addBoid( scene, position, direction, this.angle * Math.PI / 180, this.radius );
+            }
+        }
+
+        this.gui.add( this, 'addNewBoid' );
+        this.gui.add( this, 'addRandomBoids' );
         this.newBoidFolder = this.gui.addFolder( 'New Boid Parameters' );
-
-        this.newBoidFolder.add( this, 'addNewBoid' );
-        var posFolder = this.newBoidFolder.addFolder( 'Position' );
-
-        posFolder.add( this.position, 'x' ).min( -5 ).max( 5 ).step( 0.1 );
-        posFolder.add( this.position, 'y' ).min( -5 ).max( 5 ).step( 0.1 );
-        posFolder.add( this.position, 'z' ).min( -5 ).max( 5 ).step( 0.1 );
-        var dirFolder = this.newBoidFolder.addFolder( 'Direction' );
-        dirFolder.add( this.direction, 'x' ).min( -1 ).max( 1 ).step( 0.1 );
-        dirFolder.add( this.direction, 'y' ).min( -1 ).max( 1 ).step( 0.1 );
-        dirFolder.add( this.direction, 'z' ).min( -1 ).max( 1 ).step( 0.1 );
-        var perceptionFolder = this.newBoidFolder.addFolder( 'Perception' );
-        perceptionFolder.add( this, 'radius' ).min( 0 ).max( 10 ).step( 0.1 );
-        perceptionFolder.add( this, 'angle' ).min( 0 ).max( 180 ).step( 1 );
+        this.newBoidFolder.add( this, 'radius' ).min( 0.1 ).max( 10 ).step( 0.1 );
+        this.newBoidFolder.add( this, 'angle' ).min( 0 ).max( 180 ).step( 1 );
 
         this.boidFolder = null;
 
-        this.perceptionMaterial = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+        this.perceptionMaterial = new THREE.LineBasicMaterial( { color : 0xff0000, transparent : true, opacity : 0.45 } );
+        this.seeMaterial = new THREE.LineBasicMaterial( { color : 0xaa00aa, transparent : true, opacity : 1.0 } );
 
         this.hoveredBoid = null;
         this.currentBoid = null;
 
-        this.addNewBoid();
+        this.sightLines = [];
+
+        // this.addNewBoid();
+        this.addRandomBoids();
+        this.updateCurrentBoid( 'deselect' );
     }
 
     animate( scene, camera, dt ){
@@ -58,11 +70,44 @@ class Boids extends SuperModel{
 
         var boidObjects = [];
 
+        // clear sight line meshs
+        while( this.sightLines.length > 0 ){
+            this.removeMesh( scene, this.sightLines.pop() );
+        }
+
         for ( var i = 0; i < this.boids.length; i++ ){
             if ( !this.pause ){
                 this.boids[i].position.addScaledVector( this.boids[i].velocity, dt );
             }
+
+            if ( this.boids[i].perceptionNeedsUpdate ){
+                this.updatePerception( scene, this.boids[i] );
+                this.boids[i].perceptionNeedsUpdate = false;
+            }
             
+            // check if boid sees other boids
+            for ( var j = 0; j < this.boids.length; j++ ){
+                if ( i == j ){
+                    continue;
+                }
+
+                if ( this.boidASeesBoidB( this.boids[i], this.boids[j] ) ){
+                    // var material = new THREE.LineBasicMaterial( { color : 0x005500 } );
+                    var geometry = new THREE.Geometry();
+                    geometry.vertices.push( this.boids[i].position.clone(), this.boids[j].position.clone() );
+                    var line = new THREE.Line( geometry, this.seeMaterial );
+                    this.sightLines.push( line );
+                    if ( this.boids[i].showPerception || this.showPerception ){
+                        line.visible = true;
+                    } else {
+                        line.visible = false;
+                    }
+                    this.addMesh( scene, line );
+                }
+            }
+
+
+            // set params to draw mesh
             var direction = this.boids[i].velocity.clone();
             direction.normalize();
             var quaternion = new THREE.Quaternion();
@@ -83,28 +128,51 @@ class Boids extends SuperModel{
                                                     this.boids[i].perceptionRadius,
                                                     this.boids[i].perceptionRadius);
 
-            if ( this.showPerception ){
+            // toggle perception cone
+            if ( this.showPerception || this.boids[i].showPerception ){
                 this.boids[i].perceptionLine.visible = true;
             } else {
                 this.boids[i].perceptionLine.visible = false;
             }
+
+            // collect meshes for ui interaction
             this.boids[i].mesh.myIndex = i;
             boidObjects.push( this.boids[i].mesh );
         }
 
+        this.handleUserInput( scene, camera, boidObjects );
+    }
+
+    updatePerception( scene, boid ){
+        this.removeMesh( scene, boid.perceptionLine );
+        var perceptionGeom = this.createPerceptionGeometry( boid.perceptionAngle );          
+        boid.perceptionLine = new THREE.Line( perceptionGeom, this.perceptionMaterial );
+        this.addMesh( scene, boid.perceptionLine );        
+    }
+
+    handleUserInput( scene, camera, boidObjects ){
         // test intersection with boid objects
         this.raycaster.setFromCamera( this.mouse, camera );
         var intersections = this.raycaster.intersectObjects( boidObjects );
         // var intersections = this.raycaster.intersectObjects( scene.children );
         // console.log( intersections );
         if ( intersections.length > 0 ){
-        	var boid = this.boids[intersections[0].object.myIndex];
-        	this.updateHoveredBoid( boid );
+            var boid = this.boids[intersections[0].object.myIndex];
+            this.updateHoveredBoid( boid );
         } else {
-        	this.updateHoveredBoid( null );
-        }
+            this.updateHoveredBoid( null );
+        }      
     }
 
+    boidASeesBoidB( boidA, boidB ){
+        var aPoint = boidA.position;
+        var bPoint = boidB.position;
+        var aDirection = boidA.velocity;
+        var aRadius = boidA.perceptionRadius;
+        var aAngle = boidA.perceptionAngle;
+
+        return this.aSeesB( aPoint, bPoint, aDirection, aRadius, aAngle );
+    }
     aSeesB( aPoint, bPoint, aDirection, aRadius, aAngle ){
         var aToB = bPoint.clone();
         aToB.sub( aPoint );
@@ -134,8 +202,11 @@ class Boids extends SuperModel{
             velocity : velocity,
             perceptionRadius : perceptionRadius,
             perceptionAngle : perceptionAngle,
+            angle : perceptionAngle / Math.PI * 180,
             mesh : boidMesh,
-            perceptionLine : perceptionLine
+            perceptionLine : perceptionLine,
+            perceptionNeedsUpdate : false,
+            showPerception : false,
         }
 
         this.addMesh( scene, boidMesh );
@@ -163,26 +234,34 @@ class Boids extends SuperModel{
     }
 
     updateCurrentBoid( boid ){
-    	if ( boid == null ){
-    		return
-    	}
-    	if ( boid.mesh === this.currentBoid ){
-    		return;
+        if ( boid === null ){ // necessary for clicks moving camera etc.
+            return;
+        }
+    	if ( boid === this.currentBoid ){
+            return;
     	}
 
     	if ( this.currentBoid ){ // if replacing other boid, change back color
     		this.currentBoid.mesh.material.color.setHex( this.currentBoid.baseHex );
     		this.currentBoid.unHighlightedHex = this.currentBoid.mesh.material.color;
+            this.currentBoid.showPerception = false;
     	}
+
+        if ( this.boidFolder != null ){
+            this.gui.removeFolder( this.boidFolder );
+        }
+
+        if ( boid == 'deselect' ){
+            this.boidFolder = null;
+            return;
+        }
+
     	// set color of chosen boid
     	this.currentBoid = boid;
     	this.currentBoid.baseHex = boid.mesh.material.color.getHex();
     	this.currentBoid.unHighlightedHex = 0x0000bb;
     	this.currentBoid.mesh.material.color.set( this.currentBoid.unHighlightedHex );
-
-    	if ( this.boidFolder ){
-    		this.gui.removeFolder( this.boidFolder );
-    	}
+        this.currentBoid.showPerception = true;
     	
     	this.boidFolder = this.gui.addFolder( 'Selected Boid Parameters' );
     	var posFolder = this.boidFolder.addFolder( 'Position' );
@@ -198,9 +277,15 @@ class Boids extends SuperModel{
     	dirFolder.add( boid.velocity, 'z' ).listen();
 
     	var perceptionFolder = this.boidFolder.addFolder( 'Perception' );
-        perceptionFolder.add( boid, 'perceptionRadius' ).min( 0 ).max( 10 ).step( 0.1 );
-        perceptionFolder.add( boid, 'perceptionAngle' ).min( 0 ).max( 180 ).step( 1 );
+        perceptionFolder.add( boid, 'showPerception' );
+        perceptionFolder.add( boid, 'perceptionRadius' ).min( 0.1 ).max( 10 ).step( 0.1 );
+        perceptionFolder.add( boid, 'angle' ).min( 0 ).max( 180 ).step( 1 )
+                        .onChange( ( e ) => { boid.perceptionAngle = e / 180 * Math.PI;
+                                              boid.perceptionNeedsUpdate = true; } );
     	this.boidFolder.open();
+        // posFolder.open();
+        // dirFolder.open();
+        perceptionFolder.open();
     }
 
     createPerceptionGeometry( theta, segments=3, n = 30 ){
@@ -253,6 +338,12 @@ class Boids extends SuperModel{
 
     mouseClickHandler( e ){
     	this.updateCurrentBoid( this.hoveredBoid );
+    }
+
+    keyDownHandler( e ){
+        if ( e.keyCode == 27 ){
+            this.updateCurrentBoid( 'deselect' );
+        }
     }
 
 
