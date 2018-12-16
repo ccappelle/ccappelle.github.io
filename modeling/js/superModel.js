@@ -69,6 +69,10 @@ class SuperModel {
 
     }
 
+    keyUpHandler( event ){
+
+    }
+
     mouseClickHandler( event ){
         
     }

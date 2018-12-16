@@ -7,7 +7,7 @@ var linkString = `<a id="modalLink" href="#" onclick="openModal();">More Info...
 
 function addGround(){
     var texture = new THREE.TextureLoader().load("textures/groundimg.png");
-    texture.minFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.LinearMipMapLinearFilter;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
 
@@ -151,6 +151,7 @@ window.addEventListener( "resize", onWindowResize, false );
 window.addEventListener( "mousedown", onMouseClick, false );
 window.addEventListener( "mousemove", ( e ) => currentModel.mouseMoveHandler( e ), false );
 window.addEventListener( 'keydown', ( e ) => currentModel.keyDownHandler( e ), false );
+window.addEventListener( 'keyup', ( e ) => currentModel.keyUpHandler( e ), false );
 // keydown listener
 
 clock = new THREE.Clock();

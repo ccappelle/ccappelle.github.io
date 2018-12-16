@@ -16,8 +16,8 @@ class SVD extends SuperModel{
 
         // this.fileInput.onchange = ( input ) => this.readImage( input );
         this.fileInput.addEventListener( 'change', ( e ) => this.readImageFromUpload( e ), false );
-        // document.getElementById( 'model-div' ).appendChild( this.fileInput );
-        document.body.appendChild( this.fileInput );
+        document.getElementById( 'model-div' ).appendChild( this.fileInput );
+        // document.body.appendChild( this.fileInput );
 
         this.planeMeshes = [];
         this.nImages = 20;

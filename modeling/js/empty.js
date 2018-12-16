@@ -9,14 +9,19 @@ class Empty extends SuperModel{
        						 selector in the top-right corner to switch between
        						 different demos. Enjoy!`
 
-    var loader = new THREE.FontLoader();
+        var loader = new THREE.FontLoader();
 
-    this.textMesh;
-    this.loaded = false;
-    loader.load( '../../fonts/Pixolde_Medium.json',
-                 ( font ) => this.createText( scene, font )
-         );
-    this.time = 0.0;
+        this.textMesh;
+        this.loaded = false;
+        loader.load( '../../fonts/Pixolde_Medium.json',
+                     ( font ) => this.createText( scene, font )
+             );
+        this.time = 0.0;
+
+        // var geometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
+        // var edges = new THREE.EdgesGeometry( geometry );
+        // var line = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: 0x00ff00 } ) );
+        // this.addMesh( scene, line );
     }
 
     animate( scene, camera, dt ){
