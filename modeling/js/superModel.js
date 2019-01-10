@@ -11,6 +11,15 @@ class SuperModel {
         this.pause = false;
 
         this.raycaster = new THREE.Raycaster();
+
+        this.keyState = {}
+
+        var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+        for ( var i = 0; i < alphabet.length; i++){
+            this.keyState[ 'Key' + alphabet[i] ] = [false, 0, 0];
+        }
+
     }
 
     destroy( scene ){
@@ -66,11 +75,15 @@ class SuperModel {
     }
 
     keyDownHandler( event ){
-
+        if ( event.code in this.keyState ){
+            this.keyState[event.code] = [true, 0, 0];
+        }
     }
 
     keyUpHandler( event ){
-
+        if ( event.code in this.keyState ){
+            this.keyState[event.code] = [false, 0, 0];
+        }
     }
 
     mouseClickHandler( event ){

@@ -16,18 +16,10 @@ class Mandlebrot extends SuperModel {
         this.gui.add( this, 'sampleZ' );
         this.gui.add( this, 'sampleC' );
 
-        this.gui.add( this, 'Z_real' ).min( -1.0 ).max( 1.0 ).step( 0.1 );
-        this.gui.add( this, 'Z_imag' );
-        this.gui.add( this, 'C_real' );
-        this.gui.add( this, 'C_imag' );
-
-
-        this.actionKeys = { 'KeyE' : false,
-                      'KeyQ' : false,
-                      'KeyA'    : false,
-                      'KeyS'  : false,
-                      'KeyD': false,
-                      'KeyW' : false };
+        this.gui.add( this, 'Z_real' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
+        this.gui.add( this, 'Z_imag' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
+        this.gui.add( this, 'C_real' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
+        this.gui.add( this, 'C_imag' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
 
         this.vertexshader = `
             varying vec2 pout;
@@ -123,27 +115,27 @@ class Mandlebrot extends SuperModel {
     animate ( scene, camera, dt ){
         var speedScale = 0.99;
 
-        if ( this.actionKeys['KeyE'] == true ){
+        if ( this.keyState['KeyE'][0] == true ){
             // zoom in
             this.scale *= speedScale;
         }
-        if ( this.actionKeys['KeyQ'] == true ){
+        if ( this.keyState['KeyQ'][0] == true ){
             // zoom out
             this.scale *= 2 - speedScale;
         }
-        if ( this.actionKeys['KeyW'] == true ){
+        if ( this.keyState['KeyW'][0] == true ){
             // move up
             this.center.y = this.center.y + this.scale * ( 1 - speedScale );
         }
-        if ( this.actionKeys['KeyA'] == true ){
+        if ( this.keyState['KeyA'][0] == true ){
             // move left
             this.center.x = this.center.x - this.scale * ( 1 - speedScale );
         }
-        if ( this.actionKeys['KeyS'] == true ){
+        if ( this.keyState['KeyS'][0] == true ){
             // move down
             this.center.y = this.center.y - this.scale * ( 1 - speedScale );
         }
-        if ( this.actionKeys['KeyD'] == true ){
+        if ( this.keyState['KeyD'][0] == true ){
             // move right
             this.center.x = this.center.x + this.scale * ( 1 - speedScale );
         }
@@ -153,19 +145,10 @@ class Mandlebrot extends SuperModel {
         // this.center = this.center.addScalar( dt / 10.0 );
         this.square.material.uniforms.center.value = this.center;
         this.square.material.uniforms.scale.value = this.scale;
+        this.square.material.uniforms.sampleZ.value = this.sampleZ;
+        this.square.material.uniforms.sampleC.value = this.sampleC;
         this.square.material.uniforms.zcInit.value = new THREE.Vector4( this.Z_real, this.Z_imag,
                                                                         this.C_real, this.C_imag );
-    }
 
-    keyDownHandler( event ){
-        if ( event.code in this.actionKeys ){
-            this.actionKeys[event.code] = true;
-        }
-    }
-
-    keyUpHandler( event ){
-        if ( event.code in this.actionKeys ){
-            this.actionKeys[event.code] = false;
-        }
     }
 }

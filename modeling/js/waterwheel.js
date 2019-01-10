@@ -5,6 +5,8 @@ class WaterWheel extends SuperModel {
         this.nCups = 8;
         this.wheelAngle = 0;
         this.wheelRadius = 5;
+        this.wheelAngularVelocity = 0.01;
+
         this.cups = [];
         this.waterLevels = [];
 
@@ -12,11 +14,11 @@ class WaterWheel extends SuperModel {
         this.maxParticles = 1000;
 
         this.faucetY = 10.0;
-        this.faucetX = 5.0;
+        this.faucetX = 0.0;
         this.faucetZ = 0.0;
-        this.faucetrate = 1;
-        this.cuprate = 0.1;
-        this.maxFlow = 20.0;
+        this.faucetrate = 0.1;
+        this.cuprate = 0.09;
+        this.maxFlow = 1.0;
 
         this.freeParticles = [];
 
@@ -26,9 +28,9 @@ class WaterWheel extends SuperModel {
         this.particlesToRelease = [];
         this.gui.add( this, 'pause' );
         this.gui.add( this, 'ups' ).min( 1 ).max( 60 ).step( 1 );
-        this.gui.add( this, 'faucetX' ).min( -5 ).max( 5 ).step( 0.01 );
-        this.gui.add( this, 'faucetrate' ).min( 0.1 ).max( this.maxFlow ).step( 0.1 );
-        this.gui.add( this, 'cuprate' ).min( 0.01 ).max( 5 ).step( 0.01 );
+        this.gui.add( this, 'faucetX' ).min( -5 ).max( 5 ).step( 0.01 ).listen();
+        this.gui.add( this, 'faucetrate' ).min( 0.0 ).max( this.maxFlow ).step( 0.01 ).listen();
+        this.gui.add( this, 'cuprate' ).min( 0.0 ).max( 1 ).step( 0.01 ).listen();
         
         this.volumeScale = 0.05;
 
@@ -53,6 +55,10 @@ class WaterWheel extends SuperModel {
         this.freeParticles.push( particle );
     }
     releaseParticleFromFaucet(){
+        if ( this.faucetrate <= 0 ){
+            return;
+        }
+
         var particle = this.createParticle( this.faucetX, this.faucetY, this.faucetZ,
                                             0, 0, 0, this.faucetrate);
         // this.particlesToRelease.push( particle );
@@ -60,6 +66,11 @@ class WaterWheel extends SuperModel {
     }
 
     releaseParticleFromCup( cup ){
+
+        if ( this.cuprate <= 0 ){
+            return;
+        }
+
         if ( cup.mass <= 0.000001 ){
             return;
         }
@@ -98,6 +109,49 @@ class WaterWheel extends SuperModel {
     }
 
     animate( scene, camera, dt ){
+
+        if ( this.keyState['KeyA'][0] == true ){
+            this.faucetX -= 0.1;
+        }
+
+        if ( this.keyState['KeyD'][0] == true ){
+            this.faucetX += 0.1;
+        }
+
+        if ( this.keyState['KeyW'][0] == true ){
+            this.faucetrate += 0.01;
+        }
+
+        if ( this.keyState['KeyS'][0] == true ){
+            this.faucetrate -= 0.01;
+        }
+
+        if ( this.keyState['KeyQ'][0] == true ){
+            this.cuprate -= 0.01;
+        }
+
+        if ( this.keyState['KeyE'][0] == true ){
+            this.cuprate += 0.01;
+        }
+
+        if ( this.faucetX > 5 ){
+            this.faucetX = 5.0;
+        } else if ( this.faucetX < -5.0 ){
+            this.faucetX = -5.0;
+        }
+
+        if ( this.faucetrate > 1.0 ){
+            this.faucetrate = 1.0;
+        } else if ( this.faucetrate < 0.0 ){
+            this.faucetrate = 0.0;
+        }
+
+        if ( this.cuprate > 1.0 ){
+            this.cuprate = 1.0;
+        } else if ( this.cuprate < 0.0 ){
+            this.cuprate = 0.0;
+        }
+
 
         if ( this.pause ){
             return;
@@ -146,8 +200,45 @@ class WaterWheel extends SuperModel {
 
         this.releaseParticleFromFaucet();
 
+        // accumulate force due to weight
+        var centerOfMass = new THREE.Vector3();
+        var totalMass = 0;
+
         for ( var i = 0; i < this.cups.length; i++ ){
+            centerOfMass.addScaledVector( this.cups[i].position, this.cups[i].mass );
+            totalMass += this.cups[i].mass;
+        }
+        // average forces
+        centerOfMass.multiplyScalar( this.cups.length );
+        centerOfMass.y -= 1.0;
+
+        var r = centerOfMass.length();
+        var theta = Math.atan2( centerOfMass.x, centerOfMass.y );
+
+        var torque = -r * 0.001 * Math.sin(theta)
+        // centerOfMass.y -= 1.0;
+
+        this.wheelAngularVelocity += torque * dt;
+        this.wheelAngle += this.wheelAngularVelocity * dt;
+
+        if ( this.wheelAngle > Math.PI * 2 ){
+            this.wheelAngle -= Math.PI * 2;
+        }
+
+        if ( this.wheelAngle < 0 ){
+            this.wheelAngle += Math.PI * 2;
+        }
+
+        for ( var i = 0; i < this.cups.length; i++ ){
+            // release particle
             this.releaseParticleFromCup( this.cups[i] );
+
+            // get force of each cup
+            var theta = 2 * Math.PI * i / this.nCups + this.wheelAngle;
+
+            this.cups[i].position.set( Math.cos( theta ) * this.wheelRadius,
+                                       Math.sin( theta ) * this.wheelRadius + 1.0,
+                                       0.0 );
         }
 
         for ( var i = 0; i < this.freeParticles.length; i++ ){
@@ -157,6 +248,7 @@ class WaterWheel extends SuperModel {
 
             this.particleScale[i] = this.freeParticles[i].diameter;
         }
+
 
         this.particleMesh.geometry.attributes.translation.needsUpdate = true;
         this.particleMesh.geometry.attributes.scale.needsUpdate = true;
