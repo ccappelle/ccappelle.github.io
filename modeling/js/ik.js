@@ -2,6 +2,10 @@ class IK extends SuperModel{
 
 	constructor ( scene ){
 		super( scene );
+		this.currentSegment = null;
+		this.hoveredSegment = null;
+		this.segmentFolder = null;
+
 		this.instructionString = `This demo showcases the FABRIK algorithm for solving inverse kinematics.
 								  You can add and remove arm segments and change their length
 								  through the gui control panel.`
@@ -38,9 +42,9 @@ class IK extends SuperModel{
 
 		this.addSegment = ( e ) => this.addBone( scene );
 		this.removeSegment = ( e ) => this.removeBone( scene );
+
 		this.gui.add( this, 'addSegment' );
 		this.gui.add( this, 'removeSegment' );
-
 
 		// add target
 		this.ballPosition = new THREE.Vector3( 5, 0, 0 );
@@ -60,23 +64,24 @@ class IK extends SuperModel{
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setX( value ); this.recalcFABRIK = true; } );
 		targetFolder.add( this.ballPosition, "y" )
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setY( value ); this.recalcFABRIK = true; } );
 		targetFolder.add( this.ballPosition, "z" )
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setZ( value ); this.recalcFABRIK = true; } );
 		targetFolder.addColor( this, "targetColor" )
 					.onChange( ( value ) => { this.ballMesh.material.color.setHex( value ) } );
 
 		this.bones = [];
-		this.boneFolder = this.gui.addFolder( 'Bones' );
-		this.boneFolders = [];
 		// this.boneMeshes = [];
 
 		this.controlPoints = [];
@@ -94,12 +99,120 @@ class IK extends SuperModel{
 	}
 
 	animate( scene, camera, dt ){
-		
+		// var x, y, z;
+		// console.log( this.ballMesh.position );
+		if ( this.keyState['KeyE'][0] == true ){
+            this.ballMesh.position.z -= 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyQ'][0] == true ){
+            this.ballMesh.position.z += 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyW'][0] == true ){
+            this.ballMesh.position.y += 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyA'][0] == true ){
+            this.ballMesh.position.x -= 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyS'][0] == true ){
+        	this.ballMesh.position.y -= 0.1;
+        	this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyD'][0] == true ){
+            this.ballMesh.position.x += 0.1;
+            this.recalcFABRIK = true;
+        }
+
+        
+
+        this.ballMesh.position.clamp( new THREE.Vector3( -5, -5, -5 ),
+        						 new THREE.Vector3( 5, 5, 5 ) );
+        this.ballPosition = this.ballMesh.position;
+
 		if ( this.recalcFABRIK ){
 			this.runFABRIK();
 			this.updateBones();
 			this.recalcFABRIK = false;
 		}
+
+		this.handleUserInput();
+	}
+
+	handleUserInput(){
+		this.raycaster.setFromCamera( this.mouse, camera );
+		var boneMeshes = []
+
+		for ( var i = 0; i < this.bones.length; i++ ){
+			this.bones[i].mesh.myIndex = i;
+			boneMeshes.push( this.bones[i].mesh );
+		}
+
+		var intersections = this.raycaster.intersectObjects( boneMeshes );
+		if ( intersections.length > 0 ){
+			var segment = this.bones[ intersections[0].object.myIndex ];
+			this.updateHoveredSegment( segment );
+		} else{
+			this.updateHoveredSegment( null );
+		}
+	}
+
+	updateHoveredSegment( segment ){
+		if ( this.hoveredSegment === segment ){
+			return;
+		}
+
+		if ( this.hoveredSegment ){
+			this.hoveredSegment.mesh.material.emissive.setHex( 
+				this.hoveredSegment.mesh.defaultEmissive );
+		}
+
+		if ( segment ){
+			this.hoveredSegment = segment;
+			this.hoveredSegment.mesh.defaultEmissive = this.hoveredSegment.mesh.material.emissive;
+			this.hoveredSegment.mesh.material.emissive.setHex( 0xff0000 );
+		} else {
+			this.hoveredSegment = null;
+		}
+	}
+
+	updateCurrentSegment( segment ){
+		if ( segment == null ){
+			return;
+		}
+
+		if ( segment == this.currentSegment ){
+			segment = 'deselect'
+		}
+
+
+		if ( this.currentSegment ){
+			this.currentSegment.mesh.material.color.setHex( this.currentSegment.baseHex );
+		}
+
+		if ( this.segmentFolder != null ){
+			this.gui.removeFolder( this.segmentFolder );
+		}
+
+		if ( segment == 'deselect' ){
+			this.currentSegment = null;
+			this.segmentFolder = null;
+		}
+
+		this.currentSegment = segment;
+		this.currentSegment.baseHex = segment.mesh.material.color.getHex();
+		this.currentSegment.mesh.material.color.setHex( 0x0022ff );
+		// update current segment folder
+
+		this.segmentFolder = this.gui.addFolder( 'Selected Segment' );
+
+		this.segmentFolder.add( segment, 'length' )
+						  .min( 0.1 ).max( 10.0 ).step( 0.1 )
+						  .onChange( ( e ) => { this.recalcFABRIK = true; this.controlPoints[this.controlPoints.length - 1].x += 0.1 } );
+		this.segmentFolder.open();
+		this.recalcFABRIK = true;
 	}
 
 	updateBones( ){
@@ -163,12 +276,12 @@ class IK extends SuperModel{
 		var bone = this.bones.pop();
 		this.controlPoints.pop();
 
-		this.boneFolder.removeFolder( this.boneFolders[index] );
-		this.boneFolders.pop();
-
+		if ( bone === this.currentSegment ){
+			this.gui.removeFolder( this.segmentFolder )
+			this.segmentFolder = null;
+		}
 		this.removeMesh( scene, controlMesh );
 		this.removeMesh( scene, bone.mesh );
-
 
 		this.recalcFABRIK = true;
 	}
@@ -205,13 +318,6 @@ class IK extends SuperModel{
 		}
 
 		this.bones.push( bone );
-		this.boneFolders.push( this.boneFolder.addFolder( String( index + 1 ) ) );
-
-		this.boneFolders[index].add( bone, 'length' ).min( 0 ).max( 5 ).step( 0.1 )
-							   .onChange( ( value ) => { this.recalcFABRIK = true; this.armChanged = true;} );
-		this.boneFolders[index].addColor( bone, 'color' )
-							   .onChange( ( value ) => boneMesh.material.color.setHex( value ) );
-
 		var point = this.controlPoints[index].clone();
 		bone.position = point.clone();
 		bone.position.addScaledVector( bone.direction, bone.length / 2.0 );
@@ -301,5 +407,10 @@ class IK extends SuperModel{
 			var errorVec = this.controlPoints[ this.controlPoints.length - 1 ].clone();
 			error = errorVec.distanceTo( this.ballPosition );
 		}
+
+	}
+
+	mouseClickHandler( e ){
+		this.updateCurrentSegment( this.hoveredSegment );
 	}
 }

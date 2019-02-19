@@ -7,15 +7,16 @@ class Mandlebrot extends SuperModel {
         this.scale = 5;
         this.sampleZ = false;
         this.sampleC = true;
+        this.whichImage = 'Mandlebrot'
 
         this.Z_real = 0.0;
         this.Z_imag = 0.0;
         this.C_real = 0.0;
         this.C_imag = 0.0;
 
-        this.gui.add( this, 'sampleZ' );
-        this.gui.add( this, 'sampleC' );
-
+        // this.gui.add( this, 'sampleZ' );
+        // this.gui.add( this, 'sampleC' );
+        this.gui.add( this, 'whichImage', [ 'Mandlebrot', 'Julia' ] );
         this.gui.add( this, 'Z_real' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
         this.gui.add( this, 'Z_imag' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
         this.gui.add( this, 'C_real' ).min( -1.0 ).max( 1.0 ).step( 0.001 );
@@ -145,6 +146,15 @@ class Mandlebrot extends SuperModel {
         // this.center = this.center.addScalar( dt / 10.0 );
         this.square.material.uniforms.center.value = this.center;
         this.square.material.uniforms.scale.value = this.scale;
+
+        if ( this.whichImage === "Mandlebrot" ){
+            this.sampleC = true;
+            this.sampleZ = false;
+        } else {
+            this.sampleZ = true;
+            this.sampleC = false;
+        }
+
         this.square.material.uniforms.sampleZ.value = this.sampleZ;
         this.square.material.uniforms.sampleC.value = this.sampleC;
         this.square.material.uniforms.zcInit.value = new THREE.Vector4( this.Z_real, this.Z_imag,
