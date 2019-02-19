@@ -49,7 +49,7 @@ class ESIndividual {
     }
 
     setFitness( fit ){
-        this.fitness = fitness;
+        this.fitness = fit;
     }
 
     static compare( indv1, indv2 ){
@@ -66,7 +66,7 @@ class ES extends SuperModel {
     constructor( scene, params={} ){
         super( scene );
         this.timer = 0.0;
-        this.pause = false;
+        this.pause = true;
 
         this.instructionString = `Visualization of ES algorithms on different functions. Green dots represent the
                                   current population. The orange dot represents the best solution found so far.
@@ -133,15 +133,15 @@ class ES extends SuperModel {
         this.needsupdate = false;
 
         this.restart = this.initPopulation;
-        this.togglePause = function() { this.pause = !this.pause };
         // add gui options
         this.gui.add( this, "restart" );
-        this.gui.add( this, "togglePause" );
+        this.gui.add( this, 'pause').onChange( ( e ) => this.needsudate = true );
+
         var controller = this.gui.add( this, "currentFunction", names );
         this.gui.add( this, "ups" ).min( 1 ).max( 50 ).step( 1 );
         this.gui.add( this, "sigma1" ).min( 0 ).max( 1.0 ).step( 0.01 );
         this.gui.add( this, "sigma2" ).min( 0 ).max( 1.0 ).step( 0.01 );
-        controller.onFinishChange( (e) => { this.guiNeedsUpdate( e ) } );
+        controller.onFinishChange( (e) => { this.needsupdate = true } );
 
         var ballGeom = new THREE.SphereGeometry( 0.15, 20, 20 );
         var ballMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00 } );
@@ -152,21 +152,23 @@ class ES extends SuperModel {
             this.populationMeshes.push( ballMesh );
         }
 
+        document.getElementById( 'model-div' ).style.display = 'inline-block';
         this.bestMesh = new THREE.Mesh( ballGeom, new THREE.MeshLambertMaterial( { color: 0xf05011 } ) );
         this.addMesh( scene, this.bestMesh );
         this.bestMesh.visible = false;
 
         this.initPopulation();
-    }
 
-    guiNeedsUpdate( e ){
-        this.needsupdate = true;
     }
 
     animate( scene, camera, dt ){
         super.animate( scene, camera, dt );
         if ( this.needsupdate ){
             this.updateMeshFromFunction();
+            // recalc fitness
+            for ( var i = 0; i < this.population.length; i++ ){
+                this.population[i].fitness = this.getFunctionValue( this.population[i].x, this.population[i].y );
+            }
             this.needsupdate = false;
         }
 

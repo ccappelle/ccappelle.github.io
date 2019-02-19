@@ -6,10 +6,20 @@ class SuperModel {
         this.modalContent = `WORK IN PROGRESS`;
         this.gui = new dat.GUI();
         this.pause = false;
-        this.mouseX = 0;
-        this.mouseY = 0;
+        this.mouse = new THREE.Vector2();
 
         this.pause = false;
+
+        this.raycaster = new THREE.Raycaster();
+
+        this.keyState = {}
+
+        var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+        for ( var i = 0; i < alphabet.length; i++){
+            this.keyState[ 'Key' + alphabet[i] ] = [false, 0, 0];
+        }
+
     }
 
     destroy( scene ){
@@ -24,6 +34,19 @@ class SuperModel {
         scene.add( mesh );
         this.sceneMeshes.push( mesh );
     }
+
+    removeMeshesBySplice( scene, indexStart, count ){
+        var meshesToRemove = this.sceneMeshes.splice( indexStart, count );
+        for ( var i = 0; i < meshesToRemove.length; i++ ){
+            scene.remove( meshesToRemove[i] );
+            meshesToRemove[i].geometry.dispose();
+            meshesToRemove[i].material.dispose();
+        }
+    }   
+
+    // removeMeshByIndex( scene, index ){
+    //     this.sceneMeshes.splice(index, 1 );
+    // }
 
     removeMesh( scene, mesh ){
         var indices = [];
@@ -52,15 +75,23 @@ class SuperModel {
     }
 
     keyDownHandler( event ){
+        if ( event.code in this.keyState ){
+            this.keyState[event.code] = [true, 0, 0];
+        }
+    }
 
+    keyUpHandler( event ){
+        if ( event.code in this.keyState ){
+            this.keyState[event.code] = [false, 0, 0];
+        }
     }
 
     mouseClickHandler( event ){
-
+        
     }
 
     mouseMoveHandler( event ){
-            this.mouseX = ( event.clientX / window.innerWidth ) * 2 - 1;
-            this.mouseY = 1 - ( event.clientY / window.innerHeight ) * 2;
+            this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            this.mouse.y = 1 - ( event.clientY / window.innerHeight ) * 2;
     }
 }

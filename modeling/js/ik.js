@@ -2,6 +2,10 @@ class IK extends SuperModel{
 
 	constructor ( scene ){
 		super( scene );
+		this.currentSegment = null;
+		this.hoveredSegment = null;
+		this.segmentFolder = null;
+
 		this.instructionString = `This demo showcases the FABRIK algorithm for solving inverse kinematics.
 								  You can add and remove arm segments and change their length
 								  through the gui control panel.`
@@ -14,6 +18,7 @@ class IK extends SuperModel{
 		this.recalcFABRIK = true;
 		this.eps = 0.01;
 		this.maxIterations = 10;
+		this.armChanged = true;
 
 		// add grid helper
 		var xyGrid = new THREE.GridHelper( 10, 10 );
@@ -37,15 +42,15 @@ class IK extends SuperModel{
 
 		this.addSegment = ( e ) => this.addBone( scene );
 		this.removeSegment = ( e ) => this.removeBone( scene );
+
 		this.gui.add( this, 'addSegment' );
 		this.gui.add( this, 'removeSegment' );
 
-
 		// add target
 		this.ballPosition = new THREE.Vector3( 5, 0, 0 );
-		this.ballColor = 0x00ff00;
+		this.targetColor = 0x00ff00;
 
-		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.ballColor } );
+		var ballMaterial = new THREE.MeshStandardMaterial( { color : this.targetColor } );
 		var ballGeometry = new THREE.SphereGeometry( 0.3, 32, 32 );
 		this.ballMesh = new THREE.Mesh( ballGeometry, ballMaterial );
 
@@ -59,24 +64,25 @@ class IK extends SuperModel{
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setX( value ); this.recalcFABRIK = true; } );
 		targetFolder.add( this.ballPosition, "y" )
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setY( value ); this.recalcFABRIK = true; } );
 		targetFolder.add( this.ballPosition, "z" )
 					.min( -5 )
 					.max( 5 )
 					.step( 0.1 )
+					.listen()
 					.onChange( ( value ) => { this.ballMesh.position.setZ( value ); this.recalcFABRIK = true; } );
-		targetFolder.addColor( this, "ballColor" )
+		targetFolder.addColor( this, "targetColor" )
 					.onChange( ( value ) => { this.ballMesh.material.color.setHex( value ) } );
 
 		this.bones = [];
-		this.boneFolder = this.gui.addFolder( 'Bones' );
-		this.boneFolders = [];
-		this.boneMeshes = [];
+		// this.boneMeshes = [];
 
 		this.controlPoints = [];
 		this.controlPoints.push( new THREE.Vector3( 0, 0, 0 ) );
@@ -93,12 +99,120 @@ class IK extends SuperModel{
 	}
 
 	animate( scene, camera, dt ){
+		// var x, y, z;
+		// console.log( this.ballMesh.position );
+		if ( this.keyState['KeyE'][0] == true ){
+            this.ballMesh.position.z -= 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyQ'][0] == true ){
+            this.ballMesh.position.z += 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyW'][0] == true ){
+            this.ballMesh.position.y += 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyA'][0] == true ){
+            this.ballMesh.position.x -= 0.1;
+            this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyS'][0] == true ){
+        	this.ballMesh.position.y -= 0.1;
+        	this.recalcFABRIK = true;
+        }
+        if ( this.keyState['KeyD'][0] == true ){
+            this.ballMesh.position.x += 0.1;
+            this.recalcFABRIK = true;
+        }
+
+        
+
+        this.ballMesh.position.clamp( new THREE.Vector3( -5, -5, -5 ),
+        						 new THREE.Vector3( 5, 5, 5 ) );
+        this.ballPosition = this.ballMesh.position;
 
 		if ( this.recalcFABRIK ){
 			this.runFABRIK();
 			this.updateBones();
 			this.recalcFABRIK = false;
 		}
+
+		this.handleUserInput();
+	}
+
+	handleUserInput(){
+		this.raycaster.setFromCamera( this.mouse, camera );
+		var boneMeshes = []
+
+		for ( var i = 0; i < this.bones.length; i++ ){
+			this.bones[i].mesh.myIndex = i;
+			boneMeshes.push( this.bones[i].mesh );
+		}
+
+		var intersections = this.raycaster.intersectObjects( boneMeshes );
+		if ( intersections.length > 0 ){
+			var segment = this.bones[ intersections[0].object.myIndex ];
+			this.updateHoveredSegment( segment );
+		} else{
+			this.updateHoveredSegment( null );
+		}
+	}
+
+	updateHoveredSegment( segment ){
+		if ( this.hoveredSegment === segment ){
+			return;
+		}
+
+		if ( this.hoveredSegment ){
+			this.hoveredSegment.mesh.material.emissive.setHex( 
+				this.hoveredSegment.mesh.defaultEmissive );
+		}
+
+		if ( segment ){
+			this.hoveredSegment = segment;
+			this.hoveredSegment.mesh.defaultEmissive = this.hoveredSegment.mesh.material.emissive;
+			this.hoveredSegment.mesh.material.emissive.setHex( 0xff0000 );
+		} else {
+			this.hoveredSegment = null;
+		}
+	}
+
+	updateCurrentSegment( segment ){
+		if ( segment == null ){
+			return;
+		}
+
+		if ( segment == this.currentSegment ){
+			segment = 'deselect'
+		}
+
+
+		if ( this.currentSegment ){
+			this.currentSegment.mesh.material.color.setHex( this.currentSegment.baseHex );
+		}
+
+		if ( this.segmentFolder != null ){
+			this.gui.removeFolder( this.segmentFolder );
+		}
+
+		if ( segment == 'deselect' ){
+			this.currentSegment = null;
+			this.segmentFolder = null;
+		}
+
+		this.currentSegment = segment;
+		this.currentSegment.baseHex = segment.mesh.material.color.getHex();
+		this.currentSegment.mesh.material.color.setHex( 0x0022ff );
+		// update current segment folder
+
+		this.segmentFolder = this.gui.addFolder( 'Selected Segment' );
+
+		this.segmentFolder.add( segment, 'length' )
+						  .min( 0.1 ).max( 10.0 ).step( 0.1 )
+						  .onChange( ( e ) => { this.recalcFABRIK = true; this.controlPoints[this.controlPoints.length - 1].x += 0.1 } );
+		this.segmentFolder.open();
+		this.recalcFABRIK = true;
 	}
 
 	updateBones( ){
@@ -110,19 +224,42 @@ class IK extends SuperModel{
 											  );
 		}
 
-		var xUnitVector = new THREE.Vector3( 1, 0, 0 );
-
 		// draw control points
 		for ( var i = 0; i < this.bones.length; i++ ){
-			var quaternion = new THREE.Quaternion();
-			quaternion.setFromUnitVectors( xUnitVector, this.bones[i].direction );
-			this.boneMeshes[i].setRotationFromQuaternion( quaternion );
-			this.boneMeshes[i].position.set( this.bones[i].position.x,
+			// this.boneMeshes[i].rotation.x = 0;
+			this.bones[i].mesh.rotation.x = 0;
+			// not dir = ( 0, 1 , 0 );
+			if( Math.abs( this.bones[i].direction.x ) + Math.abs( this.bones[i].direction.z ) > 0.05 ){
+				var XZdir = ( new THREE.Vector3( this.bones[i].direction.x, 
+											   0,
+											   this.bones[i].direction.z )).normalize();
+				var mult = 1.0;
+				if( XZdir.z > 0 ){
+					mult = -1.0;
+				}
+
+
+				var angle = mult * Math.acos( XZdir.x );
+				this.bones[i].mesh.rotation.y = angle;
+				this.bones[i].mesh.rotation.z = Math.asin( this.bones[i].direction.y );
+			} else {
+				this.bones[i].mesh.rotation.y = 0;
+				this.bones[i].mesh.rotation.z = Math.PI * Math.sign( this.bones[i].direction.y ) / 2.0;
+			}
+			this.bones[i].mesh.position.set( this.bones[i].position.x,
 											 this.bones[i].position.y,
 											 this.bones[i].position.z
 										    );
 			// this.boneMeshes[i].rotation.x = 0.0;
-			this.boneMeshes[i].scale.set( this.bones[i].length, 1, 1 );
+			this.bones[i].mesh.scale.set( this.bones[i].length, 1, 1 );
+			
+
+			// this.boneMeshes[i].position.set( this.bones[i].position.x,
+			// 								 this.bones[i].position.y,
+			// 								 this.bones[i].position.z
+			// 							    );
+			// // this.boneMeshes[i].rotation.x = 0.0;
+			// this.boneMeshes[i].scale.set( this.bones[i].length, 1, 1 );
 		}
 	}
 
@@ -134,17 +271,17 @@ class IK extends SuperModel{
 			return;
 		}
 		var controlMesh = this.controlMeshes.pop();
-		var boneMesh = this.boneMeshes.pop();
+		// var boneMesh = this.boneMeshes.pop();
 
 		var bone = this.bones.pop();
 		this.controlPoints.pop();
 
-		this.boneFolder.removeFolder( this.boneFolders[index] );
-		this.boneFolders.pop();
-
+		if ( bone === this.currentSegment ){
+			this.gui.removeFolder( this.segmentFolder )
+			this.segmentFolder = null;
+		}
 		this.removeMesh( scene, controlMesh );
-		this.removeMesh( scene, boneMesh );
-
+		this.removeMesh( scene, bone.mesh );
 
 		this.recalcFABRIK = true;
 	}
@@ -158,20 +295,13 @@ class IK extends SuperModel{
 
 		var controlMat = new THREE.MeshStandardMaterial( { color : 0x000000 } );
 		var controlGeom = new THREE.SphereGeometry(0.2, 10, 10 );
-		var mesh = new THREE.Mesh( controlGeom, controlMat );
-		this.controlMeshes.push( mesh );
-
-		// var boneMat = new THREE.LineBasicMaterial( { color : 0xff0000 } );
-		// var boneGeom = new THREE.Geometry();
-		// boneGeom.vertices.push( new THREE.Vector3( -0.5, 0.0, 0.0 ),
-		// 						new THREE.Vector3( 0.5, 0.0, 0.0 ) );
-		// boneGeom.dynamic = true;
-		// var boneMesh = new THREE.Line( boneGeom, boneMat );
+		var controlMesh = new THREE.Mesh( controlGeom, controlMat );
+		this.controlMeshes.push( controlMesh );
 
 		var boneMat = new THREE.MeshStandardMaterial( { color : 0xff0000 } );
 		var boneGeom = new THREE.BoxGeometry( 1, 0.2, 0.2 );
 		var boneMesh = new THREE.Mesh( boneGeom, boneMat );
-		this.boneMeshes.push( boneMesh );
+		// this.boneMeshes.push( boneMesh );
 
 		var bone = {
 			length : 1,
@@ -182,17 +312,12 @@ class IK extends SuperModel{
 			axis : new THREE.Vector3( 0, 0, 1 ),
 			color : 0xff0000,
 			direction : ( new THREE.Vector3( 1, 0, 0 ) ).normalize(),
-			position : new THREE.Vector3()
+			desiredDirection : ( new THREE.Vector3( 1, 0, 0 ) ).normalize(),
+			position : new THREE.Vector3(),
+			mesh : boneMesh,
 		}
 
 		this.bones.push( bone );
-		this.boneFolders.push( this.boneFolder.addFolder( String( index + 1 ) ) );
-
-		this.boneFolders[index].add( bone, 'length' ).min( 0 ).max( 5 ).step( 0.1 )
-							   .onChange( ( value ) => { this.recalcFABRIK = true; } );
-		this.boneFolders[index].addColor( bone, 'color' )
-							   .onChange( ( value ) => boneMesh.material.color.setHex( value ) );
-
 		var point = this.controlPoints[index].clone();
 		bone.position = point.clone();
 		bone.position.addScaledVector( bone.direction, bone.length / 2.0 );
@@ -200,14 +325,23 @@ class IK extends SuperModel{
 		point.addScaledVector( bone.direction, bone.length );
 		this.controlPoints.push( point );
 
-		this.addMesh( scene, mesh );
-		this.addMesh( scene, boneMesh );
+		this.addMesh( scene, controlMesh );
+		this.addMesh( scene, bone.mesh );
 
 		this.recalcFABRIK = true;
 	}
 
 	runFABRIK( ){
-		var error = 1.0;
+		// TO DO:
+		// run radius check
+
+		////
+		var error = this.controlPoints[ this.controlPoints.length - 1 ].distanceTo( this.ballPosition );
+		if ( this.armChanged ){
+			error = 1;
+			this.armChanged = false;
+		}
+		
 		var count = 0;
 		while( error > this.eps && count < this.maxIterations ){
 			var cpBack = [];
@@ -273,5 +407,10 @@ class IK extends SuperModel{
 			var errorVec = this.controlPoints[ this.controlPoints.length - 1 ].clone();
 			error = errorVec.distanceTo( this.ballPosition );
 		}
+
+	}
+
+	mouseClickHandler( e ){
+		this.updateCurrentSegment( this.hoveredSegment );
 	}
 }
