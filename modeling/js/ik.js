@@ -8,7 +8,7 @@ class IK extends SuperModel{
 
 		this.instructionString = `This demo showcases the FABRIK algorithm for solving inverse kinematics.
 								  You can add and remove arm segments and change their length
-								  through the gui control panel.`
+								  through the gui control panel. Use QWEASD to control the position of the target.`
 
 		this.modalContent = `Forward And Backward Reaching Inverse Kinematics (FABRIK) is a heuristic algorithm
 							 for solving inverse kinematics. It was invented by Dr. Andreas Aristidou. You can

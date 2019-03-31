@@ -3,6 +3,12 @@ class Boids extends SuperModel{
     constructor( scene ){
         super( scene );
 
+        this.instructionString = `Boids are agents which move based on heuristic instructions.
+                                  There are many options to choose from in the upper right hand side bar so have fun exploring!`;
+        this.modalContent = `Boids were invented by Craig Reynolds in 1986.
+                             They have been used in a variety of animations and video games to simulate swarm behavior.
+                             Check out <a href="http://www.red3d.com/cwr/">Craig's Website</a> for more info.`;
+
         this.boids = [];
         this.pause = true;
         // this.boidMeshes = [];

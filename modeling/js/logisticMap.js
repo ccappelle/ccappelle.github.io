@@ -2,7 +2,14 @@
 class LogisticMap extends SuperModel{
 
     constructor( scene ){
-        super( scene )
+        super( scene );
+
+        this.instructionString = `The logistic map is ax(1-x).
+                                  Tuning the value of a (use W and S) will lead to different dynamics as period-doubling bifurcations occur.
+                                  Changing x0 will change where the map starts iterating from (use A and D).
+                                  Checking continue will make the map keep iterating.`
+                 
+        this.modalContent = "The logistic map is just one of many maps which shows the signs of chaos for certain parameters."
         this.frameCount = 0;
 
         this.scale = 5;
@@ -23,12 +30,14 @@ class LogisticMap extends SuperModel{
                 .min( 1.0 )
                 .max( 4.0 )
                 .step( 0.01 )
-                .onChange( ( e ) => { this.updateFunction(); this.reset = true; } );
+                .onChange( ( e ) => { this.updateFunction(); this.reset = true; } )
+                .listen();
         this.gui.add( this, 'x0' )
                 .min( 0.0 )
                 .max( 1.0 )
                 .step( 0.001 )
-                .onChange( ( e ) => this.reset = true );
+                .onChange( ( e ) => this.reset = true )
+                .listen();
 
         this.funcMaterial = new THREE.LineBasicMaterial( { color : 0xff0000 } );
         this.funcGeometry = new THREE.BufferGeometry();
@@ -75,6 +84,35 @@ class LogisticMap extends SuperModel{
     }
 
     animate( scene, camera, dt ){
+        if ( this.keyState['KeyW'][0] == true ){
+            this.a += 0.01;
+            this.reset = true;
+            if ( this.a > 4.0 ){
+                this.a = 4.0;
+            }
+
+            this.updateFunction();
+        }
+        if ( this.keyState['KeyS'][0] == true ){
+            this.a -= 0.01;
+            this.reset = true;
+            if ( this.a < 0.0 ){
+                this.a = 0.0;
+            }
+            this.updateFunction();
+        }
+        if ( this.keyState['KeyA'][0] == true ){
+            this.x0 -= 0.01;
+            this.reset = true;
+        }
+        if ( this.keyState['KeyD'][0] == true ){
+            this.x0 += 0.01
+            this.reset = true;
+        }
+
+        if ( this.x0 > 1.0 ){ this.x0 = 1.0 };
+        if ( this.x0 < 0.0 ){ this.x0 = 0.0 };
+        
         this.ballMesh.position.set( ( this.x0 - 0.5 ) * this.scale, 0, 0 );
 
         if ( this.reset ){

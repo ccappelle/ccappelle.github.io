@@ -110,8 +110,8 @@ class ODEDemo extends SuperModel{
     constructor ( scene ){
         super( scene );
 
-        this.instructionString = `A demo comparing different ODE integrators.`;
-        this.modalContent = `You can read more about ODE integration here
+        this.instructionString = `A demo visualizing a numerical solution of an initial value problem.`;
+        this.modalContent = `You can read more about ODE integration here: 
                              <a href="https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations">
                                 https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations</a>`
 

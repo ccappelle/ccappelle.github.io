@@ -4,6 +4,8 @@ class SuperModel {
         this.sceneMeshes = [];
         this.instructionString = `WORK IN PROGRESS`;
         this.modalContent = `WORK IN PROGRESS`;
+        this.modelDevState = 0;
+        
         this.gui = new dat.GUI();
         this.pause = false;
         this.mouse = new THREE.Vector2();
