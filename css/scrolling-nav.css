@@ -28,7 +28,7 @@ html {
 }
 
 /* Demo Sections - You can use these as guides or delete them - the scroller will work with any sort of height, fixed, undefined, or percentage based.
-The padding is very important to make sure the scrollspy picks up the right area when scrolled to. Adjust the margin and padding of sections and children 
+The padding is very important to make sure the scrollspy picks up the right area when scrolled to. Adjust the margin and padding of sections and children
 of those sections to manage the look and feel of the site. */
 
 .intro-section {
@@ -53,8 +53,17 @@ of those sections to manage the look and feel of the site. */
     background: #fff;
 }
 
+.walking-section{
+    min-height: 50%;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    text-align: center;
+    background-color: #888888;
+    color: #fff;
+}
+
 .contact-section{
-    min-height: 40%;
+    min-height: 100%;
     padding-top: 50px;
     text-align: center;
     background-color: #000;
